@@ -25,7 +25,7 @@ class MetricsAggregator:
     def build_from_config(cls, metrics_config):
         metrics = ClassLibrary.metrics()
 
-        metric_dict = {m.name: m for name, m in metrics.class_dict.items()}
+        metric_dict = {m.name.upper(): m for name, m in metrics.class_dict.items()}
 
         metrics = []
 
@@ -34,7 +34,7 @@ class MetricsAggregator:
             arguments = []
 
             if at_idx > -1:
-                m_str, arguments = m_str[at_idx], [int(m_str[at_idx + 1:])]
+                m_str, arguments = m_str[:at_idx], [int(m_str[at_idx + 1:])]
 
             if m_str.upper() not in metric_dict:
                 raise ValueError(f'Metric {m_str} not found')
