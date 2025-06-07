@@ -36,6 +36,13 @@ class ArgParser:
                 kwargs['type'] = float
             elif arg_type == 'bool':
                 kwargs['action'] = 'store_true'
+            elif arg_type == 'list':
+                list_style = arg_config.get('list_style', 'space')
+                if list_style == 'comma':
+                    kwargs['type'] = lambda s: s.split(',')
+                else:
+                    kwargs['nargs'] = '+'
+                    kwargs['type'] = str
 
             if 'default' in arg_config and arg_type != 'bool':
                 kwargs['default'] = arg_config['default']

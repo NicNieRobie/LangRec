@@ -16,8 +16,8 @@ class Runner:
     def __init__(self, config):
         self.config = config
 
-        self.model = config.model.lower()
-        self.dataset = config.dataset.lower()
+        self.model_name = config.model.upper()
+        self.dataset = config.dataset.upper()
 
         self.type = config.type
         assert self.type in ['prompt', 'embed'], f'Type {self.type} is not supported.'
@@ -42,7 +42,7 @@ class Runner:
 
         os.makedirs(self.log_dir, exist_ok=True)
 
-        self.exporter = Exporter(os.path.join(self.log_dir, f'{self.model}{self.sign}.dat'))
+        self.exporter = Exporter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}.dat'))
 
         if self.config.rerun:
             self.exporter.reset()
@@ -60,10 +60,10 @@ class Runner:
     def load_model(self):
         models = ClassLibrary.models()
 
-        if self.model not in models:
-            raise ValueError(f'Unknown model: {self.model}')
+        if self.model_name not in models:
+            raise ValueError(f'Unknown model: {self.model_name}')
 
-        model = models[self.model]
+        model = models[self.model_name]
 
         return model(device=self.get_device()).load()
 
@@ -78,7 +78,8 @@ class Runner:
         print(f'Choosing {self.config.gpu}-th GPU')
         return f'CUDA: {self.config.gpu}'
 
-    def _truncate_inputs(self, history, candidate, top_k_ratio=0.1):
+    @staticmethod
+    def _truncate_inputs(history, candidate, top_k_ratio=0.1):
         lengths = [len(item) for item in history]
         sorted_indices = np.argsort(lengths)[::-1].tolist()
         top_k = max(int(len(sorted_indices) * top_k_ratio), 1)
@@ -112,7 +113,7 @@ class Runner:
             print(f'Start from {progress}')
 
         source_set = self.processor.get_source_set(self.config.source)
-        data_gen = self.processor.generate(slicer=self.config.slice_idx, source=self.config.source)
+        data_gen = self.processor.generate(slicer=self.config.history_window, source=self.config.source)
 
         for idx, data in enumerate(bar := bars.TestBar()(data_gen, total=len(source_set))):
             if idx < progress:
@@ -185,7 +186,7 @@ class Runner:
 
         source_set = self.processor.get_source_set(self.config.source)
         data_gen = self.processor.generate(
-            slicer=self.config.slice_idx,
+            slicer=self.config.history_window,
             source=self.config.source,
             as_dict=self.model.AS_DICT
         )
@@ -219,7 +220,7 @@ class Runner:
         labels = source_set[self.processor.LABEL_COL].values
         groups = source_set[self.processor.USER_ID_COL].values
 
-        aggregator = MetricsAggregator.build_from_config(self.config.metrics.split(';'))
+        aggregator = MetricsAggregator.build_from_config(self.config.metrics)
 
         results = aggregator(scores, labels, groups)
 
