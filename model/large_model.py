@@ -29,10 +29,6 @@ class LargeModel(BaseModel, abc.ABC):
         return self.tokenizer.encode(content, return_tensors='pt', add_special_tokens=False)
 
 
-class GLM4_9BModel(LargeModel):
-    NUM_LAYERS = 48
-
-
 class Mistral7BModel(LargeModel):
     NUM_LAYERS = 32
 

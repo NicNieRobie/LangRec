@@ -15,7 +15,6 @@ arguments:
       - PHI3_7B
       - PHI2_3B
       - RECGPT7B
-      - GLM4_9B
       - LLAMA1
       - LLAMA2
       - LLAMA3
