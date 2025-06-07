@@ -1,6 +1,7 @@
 import os
 
 from utils.argparser import ArgParser
+from utils.seed import seed
 from runner import Runner
 
 if __name__ == '__main__':
@@ -10,4 +11,7 @@ if __name__ == '__main__':
 
     print('Args:', vars(config))
 
+    seed(config.seed)
+
     runner = Runner(config)
+    runner.run()
