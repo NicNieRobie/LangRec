@@ -1,7 +1,7 @@
 import abc
-from transformers import LlamaForCausalLM, AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from utils.prompt import SIMPLE_SUFFIX, SIMPLE_SYSTEM
+from utils.prompts import PROMPT_SUFFIX, SIMPLE_PROMPT
 from model.base_model import BaseModel
 from utils.auth import HF_KEY
 from utils.class_library import ignore_discovery
@@ -9,8 +9,8 @@ from utils.class_library import ignore_discovery
 
 @ignore_discovery
 class LlamaModel(BaseModel, abc.ABC):
-    PREFIX_PROMPT = SIMPLE_SYSTEM
-    SUFFIX_PROMPT = SIMPLE_SUFFIX
+    PREFIX_PROMPT = SIMPLE_PROMPT
+    SUFFIX_PROMPT = PROMPT_SUFFIX
     BIT = 16
     NUM_LAYERS = 32
 

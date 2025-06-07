@@ -2,7 +2,7 @@ import abc
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from utils.prompt import CHAT_SYSTEM, SIMPLE_SUFFIX
+from utils.prompts import PROMPT_SUFFIX, STRICT_PROMPT
 from model.base_model import BaseModel
 from utils.auth import HF_KEY
 from utils.class_library import ignore_discovery
@@ -10,8 +10,8 @@ from utils.class_library import ignore_discovery
 
 @ignore_discovery
 class LargeModel(BaseModel, abc.ABC):
-    PREFIX_PROMPT = CHAT_SYSTEM
-    SUFFIX_PROMPT = SIMPLE_SUFFIX
+    PREFIX_PROMPT = STRICT_PROMPT
+    SUFFIX_PROMPT = PROMPT_SUFFIX
     BIT = 16
 
     def __init__(self, **kwargs):

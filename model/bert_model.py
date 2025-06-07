@@ -5,13 +5,13 @@ import torch
 from transformers.models.bert import BertForMaskedLM
 from transformers.models.bert.tokenization_bert import BertTokenizer
 
-from utils.prompt import SIMPLE_SYSTEM, SIMPLE_SUFFIX
+from utils.prompts import SIMPLE_PROMPT, PROMPT_SUFFIX
 from model.base_model import BaseModel
 
 
 class BertModel(BaseModel, abc.ABC):
-    PREFIX_PROMPT = SIMPLE_SYSTEM
-    SUFFIX_PROMPT = SIMPLE_SUFFIX
+    PREFIX_PROMPT = SIMPLE_PROMPT
+    SUFFIX_PROMPT = PROMPT_SUFFIX
     BIT = 32
 
     def __init__(self, **kwargs):
