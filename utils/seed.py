@@ -6,7 +6,7 @@ import torch
 def seed(seed_val=4311):
     random.seed(seed_val)
 
-    np.random(seed_val)
+    np.random.seed(seed_val)
 
     torch.manual_seed(seed_val)
     torch.cuda.manual_seed(seed_val)
