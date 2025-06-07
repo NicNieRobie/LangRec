@@ -1,4 +1,4 @@
-from utils.class_library import ClassLibrary
+from utils.discovery.class_library import ClassLibrary
 
 if __name__ == '__main__':
     metrics = ClassLibrary.metrics()

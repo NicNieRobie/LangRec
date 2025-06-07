@@ -5,7 +5,7 @@ from multiprocessing import Pool
 import pandas as pd
 import torch
 
-from utils.class_library import ClassLibrary
+from utils.discovery.class_library import ClassLibrary
 from metrics.base_metric import BaseMetric
 
 

@@ -1,7 +1,7 @@
 import abc
 
 from model.large_model import LargeModel
-from utils.class_library import ignore_discovery
+from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery

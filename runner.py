@@ -5,7 +5,7 @@ import torch
 
 from data.base_processor import BaseProcessor
 from utils import bars
-from utils.class_library import ClassLibrary
+from utils.discovery.class_library import ClassLibrary
 from utils.exporter import Exporter
 from utils.gpu import GPU
 

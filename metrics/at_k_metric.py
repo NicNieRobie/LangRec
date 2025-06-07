@@ -1,5 +1,5 @@
 from metrics.base_metric import BaseMetric
-from utils.class_library import ignore_discovery
+from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery

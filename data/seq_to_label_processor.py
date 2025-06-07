@@ -3,7 +3,7 @@ import abc
 import pandas as pd
 
 from data.base_processor import BaseProcessor
-from utils.class_library import ignore_discovery
+from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery

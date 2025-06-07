@@ -5,7 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from utils.prompts import PROMPT_SUFFIX, STRICT_PROMPT
 from model.base_model import BaseModel
 from utils.auth import HF_KEY
-from utils.class_library import ignore_discovery
+from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery
