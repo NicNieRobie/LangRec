@@ -1,0 +1,52 @@
+description: LangRec CLI
+arguments:
+  model:
+    help: Model name
+    required: true
+    type: str
+    choices:
+      - LLAMA
+      - TALLREC
+  dataset:
+    help: Dataset name
+    required: true
+    type: str
+    choices:
+      - AMAZON
+      - MOVIELENS
+  history_window:
+    help: The length of the user behavior history window. For a positive value N, the first N items are taken from history. For a negative value N, the last N items are taken.
+    required: false
+    type: int
+    default: -20
+  source:
+    help: The subset used
+    required: false
+    type: str
+    choices:
+      - original
+      - test
+      - finetune
+    default: test
+  type:
+    required: false
+    type: str
+    choices:
+      - prompt
+      - embed
+    default: prompt
+  rerun:
+    required: false
+    type: bool
+    default: false
+  embed_func:
+    required: false
+    type: str
+    choices:
+      - last
+      - pool
+    default: last
+  latency:
+    required: false
+    type: bool
+    default: false
