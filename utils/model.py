@@ -1,20 +1,26 @@
-# TODO: Rewrite to yaml
+import yaml
 
-with open('.model') as f:
-    model_data = f.read()
-
-model = {}
-for line in model_data.strip().split('\n'):
-    name, key = line.split('=')
-    name = name.strip().lower()
-    key = key.strip().split(',')
-    key = [v.split(':') for v in key]
-    key = {k.strip(): v.strip() for k, v in key}
-    for k in key:
-        model[f'{name}{k}'] = key[k]
+with open('config/model_config.yaml', 'r') as f:
+    model_config = yaml.safe_load(f)
 
 
-def match(key):
-    if key in model:
-        return model[key]
+def match(key: str):
+    key = key.strip().lower()
+
+    for model_name, variants_or_model in model_config.items():
+        model_name_lower = model_name.lower()
+
+        if isinstance(variants_or_model, dict):
+            for variant, value in variants_or_model.items():
+                variant_str = str(variant).lower()
+                combined_key = f"{model_name_lower}{variant_str}"
+
+                if combined_key == key:
+                    if isinstance(value, dict):
+                        return value.get("path") or value.get("model_id") or value
+                    return value
+        else:
+            if model_name_lower == key:
+                return variants_or_model
+
     return None
