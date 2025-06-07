@@ -9,22 +9,22 @@ from metrics.base_metric import BaseMetric
 
 T = TypeVar('T')
 
+_IGNORED_CLASSES = set()
 
 def ignore_discovery(cls):
-    cls.__ignore_discovery__ = True
+    _IGNORED_CLASSES.add(cls)
+
+    setattr(cls, 'ignore_discovery', True)
 
     original_init_subclass = cls.__dict__.get('__init_subclass__', None)
 
     @classmethod
     def _init_subclass(subcls, **kwargs):
-        if '__ignore_discovery__' in subcls.__dict__:
-            del subcls.__ignore_discovery__
-        elif hasattr(subcls, '__ignore_discovery__'):
-            if subcls.__ignore_discovery__:
-                subcls.__ignore_discovery__ = False
+        if subcls not in _IGNORED_CLASSES:
+            setattr(subcls, 'ignore_discovery', False)
 
         if original_init_subclass:
-            original_init_subclass(**kwargs)
+            original_init_subclass(subcls, **kwargs)
         else:
             super(cls, subcls).__init_subclass__(**kwargs)
 
@@ -53,11 +53,12 @@ class ClassDiscoverer:
             try:
                 module = importlib.import_module(module_path)
                 for name, obj in module.__dict__.items():
+                    sd = getattr(obj, 'ignore_discovery', False)
                     if (
                             isinstance(obj, type)
                             and issubclass(obj, self._base_class)
                             and obj is not self._base_class
-                            and not getattr(obj, '__ignore_discovery__', False)
+                            and not getattr(obj, 'ignore_discovery', False)
                     ):
                         classes.append(obj)
             except ImportError as e:
@@ -67,20 +68,21 @@ class ClassDiscoverer:
 
 
 class ClassRegistry:
-    def __init__(self, classes: List[Type[T]], name_normalizer=None):
+    def __init__(self, classes: List[Type[T]], suffix=None, name_normalizer=None):
         self._classes = classes
         self._name_normalizer = name_normalizer or self._default_normalizer
+        self._suffix = suffix or ''
         self._class_dict = self._build_class_dict()
 
     @staticmethod
     def _default_normalizer(cls, suffix):
-        return cls.lower().replace(suffix.lower(), '')
+        return cls.upper().replace(suffix.upper(), '')
 
     def _build_class_dict(self):
         class_dict = {}
 
         for cls in self._classes:
-            name = self._name_normalizer(cls.__name__, '')
+            name = self._name_normalizer(cls.__name__, self._suffix)
             class_dict[name] = cls
 
         return class_dict
@@ -108,7 +110,7 @@ class ClassLibraryFactory:
     def create_library(base_class: Type[T], module_dir: str, suffix: str = '', name_transformer=None):
         discoverer = ClassDiscoverer(base_class, module_dir, suffix)
         classes = discoverer.discover()
-        registry = ClassRegistry(classes, name_transformer)
+        registry = ClassRegistry(classes, suffix, name_transformer)
 
         library = ClassLibrary(registry)
 
