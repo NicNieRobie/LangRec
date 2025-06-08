@@ -25,9 +25,6 @@ class LargeModel(BaseModel, abc.ABC):
         self.pos_token = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize('YES'))[0]
         self.neg_token = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize('NO'))[0]
 
-    def _generate_input_ids(self, content):
-        return self.tokenizer.encode(content, return_tensors='pt', add_special_tokens=False)
-
 
 class Mistral7BModel(LargeModel):
     NUM_LAYERS = 32

@@ -17,10 +17,20 @@ def match(key: str):
 
                 if combined_key == key:
                     if isinstance(value, dict):
+                        keys = set(value.keys())
+
+                        if len(keys) > 1:
+                            return value
+
                         return value.get("path") or value.get("model_id") or value
                     return value
+
         else:
             if model_name_lower == key:
                 return variants_or_model
 
     return None
+
+
+if __name__ == "__main__":
+    print(match('P5BEAUTY'))

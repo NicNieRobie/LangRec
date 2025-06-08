@@ -26,3 +26,11 @@ PHI:
 BERT:
   BASE: bert-base-uncased
   LARGE: bert-large-uncased
+
+P5:
+  BEAUTY_SMALL:
+    backbone: t5-small
+    path: model_files/beauty-small.pth
+  BEAUTY_BASE:
+    backbone: t5-base
+    path: model_files/beauty-base.pth

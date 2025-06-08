@@ -21,6 +21,8 @@ arguments:
       - LLAMA3_1
       - BERTBASE
       - BERTLARGE
+      - P5BEAUTY_SMALL
+      - P5BEAUTY_BASE
   dataset:
     help: Dataset name
     required: true
