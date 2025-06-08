@@ -1,5 +1,7 @@
 export/
 data_store/
+model_files/
+seq_data_store/
 
 .auth
 

@@ -2,7 +2,7 @@ import os.path
 
 import pandas as pd
 
-from data.timed_interaction_processor import TimedInteractionProcessor
+from data.ctr.timed_interaction_processor import TimedInteractionProcessor
 
 
 class MovieLensProcessor(TimedInteractionProcessor):

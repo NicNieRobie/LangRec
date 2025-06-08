@@ -48,7 +48,7 @@ class Runner:
             self.exporter.reset()
 
     def load_processor(self, data_path=None):
-        processors = ClassLibrary.processors()
+        processors = ClassLibrary.ctr_processors()
 
         if self.dataset not in processors:
             raise ValueError(f'Unknown dataset: {self.dataset}')

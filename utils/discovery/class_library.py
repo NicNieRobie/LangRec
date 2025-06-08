@@ -3,7 +3,8 @@ import importlib
 import os
 from typing import TypeVar, Type, List
 
-from data.base_processor import BaseProcessor
+from data.ctr.base_ctr_processor import BaseCTRProcessor
+from data.seq.base_seq_processor import BaseSeqProcessor
 from model.base_model import BaseModel
 from metrics.base_metric import BaseMetric
 
@@ -30,12 +31,11 @@ class ClassDiscoverer:
             try:
                 module = importlib.import_module(module_path)
                 for name, obj in module.__dict__.items():
-                    sd = getattr(obj, 'ignore_discovery', False)
                     if (
-                            isinstance(obj, type)
-                            and issubclass(obj, self._base_class)
-                            and obj is not self._base_class
-                            and not getattr(obj, 'ignore_discovery', False)
+                        isinstance(obj, type)
+                        and issubclass(obj, self._base_class)
+                        and obj is not self._base_class
+                        and not getattr(obj, 'ignore_discovery', False)
                     ):
                         classes.append(obj)
             except ImportError as e:
@@ -112,8 +112,16 @@ class ClassLibrary:
         return self._registry.class_dict
 
     @staticmethod
-    def processors():
-        return ClassLibraryFactory.create_library(BaseProcessor, 'data', 'processor')
+    def ctr_processors():
+        path = os.path.sep.join(['data', 'ctr'])
+
+        return ClassLibraryFactory.create_library(BaseCTRProcessor, path, 'processor')
+
+    @staticmethod
+    def seq_processors():
+        path = os.path.sep.join(['data', 'seq'])
+
+        return ClassLibraryFactory.create_library(BaseSeqProcessor, path, 'processor')
 
     @staticmethod
     def models():

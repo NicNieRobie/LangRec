@@ -2,7 +2,7 @@ import abc
 
 import pandas as pd
 
-from data.seq_to_label_processor import SequenceToLabelProcessor
+from data.ctr.seq_to_label_processor import SequenceToLabelProcessor
 from utils.discovery.ignore_discovery import ignore_discovery
 
 

@@ -4,10 +4,8 @@ from typing import Optional, Union, Callable
 
 import pandas as pd
 
-from data.processor_state import ProcessorState
 from data.loader import Loader
-from data.compressor import Compressor
-from data.splitter import Splitter
+from data.processor_state import ProcessorState
 
 
 class BaseProcessor(abc.ABC):
@@ -39,12 +37,6 @@ class BaseProcessor(abc.ABC):
             cast_to_string=self.CAST_TO_STRING,
             item_id_col=self.ITEM_ID_COL,
             user_id_col=self.USER_ID_COL
-        )
-
-        self.splitter = Splitter(
-            user_id_col=self.USER_ID_COL,
-            label_col=self.LABEL_COL,
-            max_interactions=self.MAX_INTERACTIONS_PER_USER
         )
 
         self._loaded: bool = False
@@ -80,7 +72,7 @@ class BaseProcessor(abc.ABC):
 
     @property
     def default_attrs(self):
-        raise NotImplementedError
+        raise None
 
     def load_items(self) -> pd.DataFrame:
         raise NotImplementedError
@@ -92,73 +84,25 @@ class BaseProcessor(abc.ABC):
         raise NotImplementedError
 
     def load(self):
-        try:
-            print(f'Attempting to load {self.DATASET_NAME} from cache')
-            self.items = self.loader.load_parquet('items')
-            self.users = self.loader.load_parquet('users')
-            self.interactions = self.loader.load_parquet('interactions')
-            print(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
-        except Exception as e:
-            print(f'Failed to load cached files: {e}. Loading raw data for {self.DATASET_NAME}...')
-            self.items = self.loader.cast_df(self.load_items())
-            self.users = self.loader.cast_df(self.load_users())
-            self.interactions = self.loader.cast_df(self.load_interactions())
-            print(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
+        raise NotImplementedError
 
-            self.loader.save_parquet('items', self.items)
-            self.loader.save_parquet('users', self.users)
-            self.loader.save_parquet('interactions', self.interactions)
-            print(f'{self.DATASET_NAME} cached')
-
-        if self.CAST_TO_STRING:
-            self.users[self.HISTORY_COL] = self.users[self.HISTORY_COL].apply(lambda x: [str(i) for i in x])
-
-        self.item_vocab = dict(zip(self.items[self.ITEM_ID_COL], range(len(self.items))))
-        self.user_vocab = dict(zip(self.users[self.USER_ID_COL], range(len(self.users))))
-
-        if Compressor(
-            self.users, self.items, self.interactions,
-            self.store_dir, self.state,
-            self.USER_ID_COL, self.ITEM_ID_COL, self.HISTORY_COL
-        ).compress():
-            print(f'Compressed {self.DATASET_NAME} data')
-            return self.load()
-
-        self._load_public_sets()
-        return self
-
-    def _load_public_sets(self):
-        if self.test_set_valid and self.finetune_set_valid:
-            print(f'Loading {self.DATASET_NAME} splits from cache')
-            if self.NUM_TEST:
-                self.test_set = self.loader.load_parquet('test')
-                print('Loaded test set')
-            if self.NUM_FINETUNE:
-                self.finetune_set = self.loader.load_parquet('finetune')
-                print('Loaded finetune set')
-            self._loaded = True
-            return
-
-        print(f'Generating test and finetune sets from {self.DATASET_NAME}...')
-        users_order = self.splitter.get_user_order(self.interactions, self.store_dir)
-
-        if self.NUM_TEST:
-            self.test_set = self.splitter.split(self.interactions, users_order, self.NUM_TEST)
-            self.loader.save_parquet('test', self.test_set)
-            print(f'Generated test set with {len(self.test_set)} samples')
-
-        if self.NUM_FINETUNE:
-            self.finetune_set = self.splitter.split(self.interactions, users_order, self.NUM_FINETUNE)
-            self.loader.save_parquet('finetune', self.finetune_set)
-            print(f'Generated finetune set with {len(self.finetune_set)} samples')
-
-        self._loaded = True
+    def load_public_sets(self):
+        raise NotImplementedError
 
     def get_source_set(self, source: str):
-        assert source in ['test', 'finetune', 'original']
-        return self.interactions if source == 'original' else getattr(self, f'{source}_set')
+        raise NotImplementedError
 
-    def _build_slicer(self, slicer: int):
+    def load_user_order(self):
+        raise NotImplementedError
+
+    def _iterate(self, df: pd.DataFrame, slicer: Union[int, Callable], item_attrs=None, id_only=False, as_dict=False):
+        raise NotImplementedError
+
+    def generate(self, slicer: Union[int, Callable], item_attrs=None, source='test', id_only=False, as_dict=False, filter_func=None):
+        raise NotImplementedError
+
+    @staticmethod
+    def _build_slicer(slicer: int):
         def _slicer(x):
             return x[:slicer] if slicer > 0 else x[slicer:]
         return _slicer
@@ -171,30 +115,29 @@ class BaseProcessor(abc.ABC):
             return item[item_attrs[0]]
         return ', '.join(f'{attr}: {item[attr]}' for attr in item_attrs)
 
-    def _iterate(self, df: pd.DataFrame, slicer: Union[int, Callable], item_attrs=None, id_only=False, as_dict=False):
-        if isinstance(slicer, int):
-            slicer = self._build_slicer(slicer)
-        item_attrs = item_attrs or self.default_attrs
+    def iterate(self, slicer: Union[int, Callable], **kwargs):
+        return self.generate(slicer, source='original')
 
-        for _, row in df.iterrows():
-            uid = row[self.USER_ID_COL]
-            candidate = row[self.ITEM_ID_COL]
-            label = row[self.LABEL_COL]
+    def test(self, slicer: Union[int, Callable], **kwargs):
+        return self.generate(slicer, source='test')
 
-            user = self.users.iloc[self.user_vocab[uid]]
-            history = slicer(user[self.HISTORY_COL])
+    def finetune(self, slicer: Union[int, Callable], **kwargs):
+        return self.generate(slicer, source='finetune')
 
-            if id_only:
-                yield uid, candidate, history, label
-            else:
-                history_str = [self.build_item_str(i, item_attrs, as_dict) for i in history]
-                candidate_str = self.build_item_str(candidate, item_attrs, as_dict)
-                yield uid, candidate, history_str, candidate_str, label
+    def try_load_cached_splits(self) -> bool:
+        if self.test_set_valid and self.finetune_set_valid:
+            print(f'Loading {self.DATASET_NAME} splits from cache')
 
-    def generate(self, slicer: Union[int, Callable], item_attrs=None, source='test', id_only=False, as_dict=False, filter_func=None):
-        if not self._loaded:
-            raise RuntimeError('Dataset not loaded')
-        source_set = self.get_source_set(source)
-        if filter_func:
-            source_set = filter_func(source_set)
-        return self._iterate(source_set, slicer, item_attrs, id_only, as_dict)
+            if self.NUM_TEST:
+                self.test_set = self.loader.load_parquet('test')
+                print('Loaded test set')
+
+            if self.NUM_FINETUNE:
+                self.finetune_set = self.loader.load_parquet('finetune')
+                print('Loaded finetune set')
+
+            self._loaded = True
+
+            return True
+
+        return False

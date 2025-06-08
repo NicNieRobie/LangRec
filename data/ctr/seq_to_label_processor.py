@@ -2,12 +2,12 @@ import abc
 
 import pandas as pd
 
-from data.base_processor import BaseProcessor
+from data.ctr.base_ctr_processor import BaseCTRProcessor
 from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery
-class SequenceToLabelProcessor(BaseProcessor, abc.ABC):
+class SequenceToLabelProcessor(BaseCTRProcessor, abc.ABC):
     POS_SAMPLE_COUNT: int
 
     def __init__(self, **kwargs):
