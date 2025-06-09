@@ -28,8 +28,8 @@ class BertModel(BaseModel, abc.ABC):
         self.pos_token = self.tokenizer.convert_tokens_to_ids('yes')
         self.neg_token = self.tokenizer.convert_tokens_to_ids('no')
 
-    def generate_input_ids(self, content, wrap_ask=True) -> torch.Tensor:
-        if wrap_ask:
+    def generate_input_ids(self, content, wrap_prompt=True) -> torch.Tensor:
+        if wrap_prompt:
             content = self.PREFIX_PROMPT + content + self.SUFFIX_PROMPT
 
         input_ids = self.tokenizer.tokenize(content)
