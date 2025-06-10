@@ -6,7 +6,7 @@ LLAMA:
   1: huggyllama/llama-7b
   2: meta-llama/Llama-2-7b-hf
   3: meta-llama/Meta-Llama-3-8B
-  3_1: meta-llama/Meta-Llama-3.1-8B
+  "3_1": meta-llama/Meta-Llama-3.1-8B
 
 RECGPT:
   7B: vinai/RecGPT-7B
@@ -24,13 +24,5 @@ PHI:
   3_7B: microsoft/Phi-3-small-8k-instruct
 
 BERT:
-  BASE: bert-base-uncased
-  LARGE: bert-large-uncased
-
-P5:
-  BEAUTY_SMALL:
-    backbone: t5-small
-    path: model_files/beauty-small.pth
-  BEAUTY_BASE:
-    backbone: t5-base
-    path: model_files/beauty-base.pth
+  BASE: google-bert/bert-base-uncased
+  LARGE: google-bert/bert-large-uncased

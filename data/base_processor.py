@@ -113,7 +113,7 @@ class BaseProcessor(abc.ABC):
             return {attr: item.get(attr, '') for attr in item_attrs}
         if len(item_attrs) == 1:
             return item[item_attrs[0]]
-        return ', '.join(f'{attr}: {item[attr]}' for attr in item_attrs)
+        return ', '.join([f'{attr}: {item[attr]}' for attr in item_attrs])
 
     def iterate(self, slicer: Union[int, Callable], **kwargs):
         return self.generate(slicer, source='original')

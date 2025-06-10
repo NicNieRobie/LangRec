@@ -5,7 +5,9 @@ from typing import TypeVar, Type, List
 
 from data.ctr.base_ctr_processor import BaseCTRProcessor
 from data.seq.base_seq_processor import BaseSeqProcessor
+from data.drec.base_drec_processor import BaseDrecProcessor
 from model.base_model import BaseModel
+from model.drec.base_drec_model import BaseDrecModel
 from metrics.base_metric import BaseMetric
 
 T = TypeVar('T')
@@ -124,8 +126,20 @@ class ClassLibrary:
         return ClassLibraryFactory.create_library(BaseSeqProcessor, path, 'processor')
 
     @staticmethod
+    def drec_processors():
+        path = os.path.sep.join(['data', 'drec'])
+
+        return ClassLibraryFactory.create_library(BaseDrecProcessor, path, 'processor')
+
+    @staticmethod
     def models():
         return ClassLibraryFactory.create_library(BaseModel, 'model', 'model')
+
+    @staticmethod
+    def drec_models():
+        path = os.path.sep.join(['model', 'drec'])
+
+        return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
 
     @staticmethod
     def metrics():

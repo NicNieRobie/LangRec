@@ -48,7 +48,8 @@ class Runner:
             self.exporter.reset()
 
     def load_processor(self, data_path=None):
-        processors = ClassLibrary.ctr_processors()
+        # processors = ClassLibrary.ctr_processors()
+        processors = ClassLibrary.drec_processors()
 
         if self.dataset not in processors:
             raise ValueError(f'Unknown dataset: {self.dataset}')
@@ -58,7 +59,8 @@ class Runner:
         return processor(data_path=data_path)
 
     def load_model(self):
-        models = ClassLibrary.models()
+        # models = ClassLibrary.models()
+        models = ClassLibrary.drec_models()
 
         if self.model_name not in models:
             raise ValueError(f'Unknown model: {self.model_name}')
@@ -104,7 +106,8 @@ class Runner:
         return None
 
     def test_prompt(self):
-        input_template = "User behavior sequence: \n{0}\nCandidate item: {1}"
+        # input_template = "User behavior sequence: \n{0}\nCandidate item: {1}"
+        input_template = "User behavior sequence: \n{0}\nCandidate items: {1}"
         progress = 0
 
         if self.exporter.exists() and not self.config.latency:
@@ -119,7 +122,7 @@ class Runner:
             if idx < progress:
                 continue
 
-            uid, item_id, history, candidate, label = data
+            uid, item_id, history, candidate, label = data # candidate is a list of candidates in case of drec
 
             response = self._retry_with_truncation(history, candidate, input_template)
 

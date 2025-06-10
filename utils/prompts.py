@@ -11,3 +11,11 @@ SIMPLE_PROMPT = (
 )
 
 PROMPT_SUFFIX = "\nAnswer (Yes/No): "
+
+DREC_SIMPLE_PROMPT = (
+    "You are a recommender system. "
+    "I will provide a user behavior sequence and a list of candidate items. "
+    "Please select an item from the list of candidates that user is expected to be interested in. "
+)
+
+DREC_PROMPT_SUFFIX = "\nAnswer (selected item): "
