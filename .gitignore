@@ -1,3 +1,10 @@
+export/
+data_store/
+model_files/
+seq_data_store/
+
+.auth
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
