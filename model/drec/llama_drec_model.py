@@ -20,8 +20,8 @@ class LlamaModel(BaseDrecModel, abc.ABC):
 
         self.max_len = 1024
 
-        self.pos_token = self.tokenizer.convert_tokens_to_ids('YES')
-        self.neg_token = self.tokenizer.convert_tokens_to_ids('NO')
+        self.pos_token = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize('YES'))[0]
+        self.neg_token = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize('NO'))[0]
 
     def _load_model_and_tokenizer(self):
         load_params = {}

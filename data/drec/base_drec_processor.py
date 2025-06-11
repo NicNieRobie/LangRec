@@ -71,6 +71,32 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
         for u in users:
             yield interactions.get_group(u)
 
+    @property
+    def test_set_valid(self):
+        return os.path.exists(os.path.join(self.store_dir, 'test_drec.parquet')) or not self.test_set_required
+
+    @property
+    def finetune_set_valid(self):
+        return os.path.exists(os.path.join(self.store_dir, 'finetune_drec.parquet')) or not self.finetune_set_required
+
+    def try_load_cached_splits(self) -> bool:
+        if self.test_set_valid and self.finetune_set_valid:
+            print(f'Loading {self.DATASET_NAME} splits from cache')
+
+            if self.NUM_TEST:
+                self.test_set = self.loader.load_parquet('test_drec')
+                print('Loaded test set')
+
+            if self.NUM_FINETUNE:
+                self.finetune_set = self.loader.load_parquet('finetune_drec')
+                print('Loaded finetune set')
+
+            self._loaded = True
+
+            return True
+
+        return False
+
     def split(self, interactions, items, store_dir, count) -> pd.DataFrame:
         """
         Select `count` items from the dataset. Here `ITEM_ID_COL` stores a set of item indexes that has
@@ -90,26 +116,19 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
             for _, row in pos_ids.iterrows():
                 group_data[self.USER_ID_COL] = row[self.USER_ID_COL]
                 group_data[self.LABEL_COL] = row[self.ITEM_ID_COL]
-                group_data[self.ITEM_ID_COL] = list(neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]) + [row[self.ITEM_ID_COL]]
+                group_data[self.ITEM_ID_COL] = [list(neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]) + [row[self.ITEM_ID_COL]]]
 
             df = pd.concat([df, pd.DataFrame.from_dict(group_data)])
 
             if len(df) >= count:
                 break
-        # for group in iterator:
-        #     for label in range(2):
-        #         group_lbl = group[group[self.LABEL_COL] == label]
-        #         n = min(self.MAX_INTERACTIONS_PER_USER // 2, len(group_lbl))
-        #         df = pd.concat([df, group_lbl.sample(n=n, replace=False)])
-        #     if len(df) >= count:
-        #         break
 
         return df.reset_index(drop=True)
 
     def get_user_order(self, interactions, store_dir):
         path = os.path.join(store_dir, 'user_order.txt')
         if os.path.exists(path):
-            return [line.strip() for line in open(path)]
+            return [int(line.strip()) for line in open(path)]
 
         users = interactions[self.USER_ID_COL].unique().tolist()
 
@@ -132,7 +151,7 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
             print(f'Generated test set for DRec task with {len(self.test_set)} samples')
 
         if self.NUM_FINETUNE:
-            self.finetune_set = self.split(self.interactions, self.store_dir, self.NUM_FINETUNE)
+            self.finetune_set = self.split(self.interactions, self.items, self.store_dir, self.NUM_FINETUNE)
             self.loader.save_parquet('finetune_drec', self.finetune_set)
             print(f'Generated finetune set for DRec task with {len(self.finetune_set)} samples')
 
