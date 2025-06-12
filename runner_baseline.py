@@ -1,4 +1,5 @@
 import os.path
+import sys
 
 import numpy as np
 import torch
@@ -15,6 +16,7 @@ from utils.exporter import Exporter
 from utils.gpu import GPU
 
 from metrics.metrics_aggregator import MetricsAggregator
+from recbole.data import data_preparation
 
 
 class BaselineRunner:
@@ -117,7 +119,7 @@ class BaselineRunner:
 
         self.exporter.save_metrics(results)
 
-    def get_data(self):
+    def get_dataset(self):
         if self.dataset == 'MOVIELENS': self.dataset_file = 'dataset'
         else: return ValueError(f"No dataset named {self.dataset}")
 
@@ -125,27 +127,38 @@ class BaselineRunner:
         if self.model == 'BPR':
             return BPR
 
-    def run_model(self, parameter_dict):
+    def get_data(self, parameter_dict):
+        parameter_dict['topk'] = [int(k) for k in parameter_dict['topk']]
+
+        sys.argv = [sys.argv[0]]  # clean cmd arguments so that config actually takes parameter_dict and not sys.argv
+
         # Create config
-        config = Config(model=self.model, config_dict=parameter_dict)
+        config = Config(model=self.model, config_dict=parameter_dict, config_file_list=[])
 
         # Load and process dataset
         dataset = create_dataset(config)
 
-        # Initialize model
+        train_data, valid_data, test_data = data_preparation(config, dataset)
+        return train_data, valid_data, test_data, config, dataset
+
+    def run_model(self, train_data, valid_data, config, dataset):
         model = self.get_model()
         model = model(config, dataset).to(config['device'])
 
         # Initialize trainer and start training
         trainer = Trainer(config, model)
-        from recbole.data import data_preparation
 
-        train_data, valid_data, test_data = data_preparation(config, dataset)
         best_valid_score, best_valid_result = trainer.fit(train_data, valid_data)
-        return best_valid_score, best_valid_result
+        return best_valid_score, best_valid_result, trainer
+
+    def eval_model(self, trainer, test_data):
+        test_result = trainer.evaluate(test_data)
+        return test_result
 
     def run(self):
-        self.get_data()
+        self.get_dataset()
+
+        print('metrics:', self.config.metrics, type(self.config.metrics))
 
         parameter_dict = {
             'dataset': self.dataset,
@@ -166,4 +179,13 @@ class BaselineRunner:
             'metrics': self.config.metrics,
             'topk': self.config.topk
         }
-        self.run_model(parameter_dict)
+
+        train_data, valid_data, test_data, config, dataset = self.get_data(parameter_dict)
+
+        best_valid_score, best_valid_result, trainer = self.run_model(train_data, valid_data, config, dataset)
+
+        print(best_valid_score, best_valid_result)
+
+        test_score = self.eval_model(trainer, test_data)
+
+        print(test_score)
