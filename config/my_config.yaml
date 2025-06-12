@@ -1,0 +1,57 @@
+description: LangRec CLI
+arguments:
+  model:
+    help: Model name
+    required: true
+    type: str
+    choices:
+      - BPR
+  dataset:
+    help: Dataset name
+    required: true
+    type: str
+    choices:
+      - MOVIELENS
+  metrics:
+    help: Comma-separated list of metrics to use for evaluation.
+    required: false
+    type: list
+    list_style: comma
+    default: "mrr,Recall"
+  history_window:
+    help: The length of the user behavior history window. For a positive value N, the first N items are taken from history. For a negative value N, the last N items are taken.
+    required: false
+    type: int
+    default: -20
+  source:
+    help: The subset used
+    required: false
+    type: str
+    choices:
+      - original
+      - test
+      - finetune
+    default: test
+  rerun:
+    required: false
+    type: bool
+    default: false
+  gpu:
+    help: The number of GPU to use. Enter -1 to use CPU.
+    required: false
+    type: int
+  seed:
+    help: The seed for RNG.
+    required: false
+    type: int
+    default: 4141
+  epochs:
+    help: Amount of epochs
+    required: false
+    type: int
+    default: 10
+  topk:
+    help: eval metric control
+    required: false
+    type: int
+    default: 10
