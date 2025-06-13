@@ -195,7 +195,8 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
             else:
                 history_str = [self.build_item_str(i, item_attrs, as_dict) for i in history]
                 candidate_str = [self.build_item_str(candidate, item_attrs, as_dict) for candidate in candidates]
-                yield uid, candidates, history_str, candidate_str, label
+                label_str = self.build_item_str(label, item_attrs, as_dict)
+                yield uid, candidates, history_str, candidate_str, label_str
 
     def generate(self, slicer: Union[int, Callable], item_attrs=None, source='test', id_only=False, as_dict=False, filter_func=None):
         if not self._loaded:

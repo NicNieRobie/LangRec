@@ -45,14 +45,12 @@ class Runner:
 
         os.makedirs(self.log_dir, exist_ok=True)
 
-        self.exporter = Exporter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}.dat'))
+        self.exporter = Exporter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}_{self.task}.dat'))
 
         if self.config.rerun:
             self.exporter.reset()
 
     def load_processor(self, data_path=None):
-        # processors = ClassLibrary.drec_processors()
-
         processors = ClassLibrary.processors(self.task)
 
 
@@ -65,7 +63,6 @@ class Runner:
 
     def load_model(self):
         models = ClassLibrary.models(self.task)
-        # models = ClassLibrary.drec_models()
 
         if self.model_name not in models:
             raise ValueError(f'Unknown model: {self.model_name}')
@@ -136,6 +133,7 @@ class Runner:
                 candidate = "\n".join(candidate)
 
             response = self._retry_with_truncation(history, candidate, input_template)
+
 
             if response is None:
                 print(f'Failed to get response for {idx} ({uid}, {item_id})')

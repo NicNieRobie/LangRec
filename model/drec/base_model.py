@@ -60,21 +60,10 @@ class BaseDrecModel:
             inputs["input_ids"],
             attention_mask=inputs["attention_mask"],
             num_beams = 20,
-            repetition_penalty = 5.0,
         )
 
         # Return a set of tokens with the prompt itself omitted
         return self.tokenizer.decode(generated_ids[0, input_len:], skip_special_tokens=True)
-
-        # with torch.no_grad():
-        #     logits = self.model(input_ids).logits
-        #
-        # logits = logits[0, -1, :]
-        #
-        # pos_score, neg_score = logits[self.pos_token].item(), logits[self.neg_token].item()
-        # pos_prob, _ = self.softmax(torch.tensor([pos_score, neg_score])).tolist()
-        #
-        # return pos_prob
 
     def generate_input_ids(self, content, wrap_prompt=True):
         if wrap_prompt:
