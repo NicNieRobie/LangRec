@@ -85,7 +85,7 @@ class BaseCTRModel:
     def embed(self, content, func='last', truncate=False):
         assert func in ['last', 'pool']
 
-        input_ids = BaseModel.generate_input_ids(self, content, wrap_prompt=False)
+        input_ids = BaseCTRModel.generate_input_ids(self, content, wrap_prompt=False)
         input_ids = input_ids.to(self.device)
 
         if truncate:
