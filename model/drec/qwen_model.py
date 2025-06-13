@@ -1,7 +1,7 @@
 import abc
 
 from utils.prompts import DREC_SIMPLE_PROMPT, DREC_PROMPT_SUFFIX
-from model.drec.large_drec_model import LargeDrecModel
+from model.drec.large_model import LargeDrecModel
 from utils.discovery.ignore_discovery import ignore_discovery
 
 

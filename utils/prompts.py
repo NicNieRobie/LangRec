@@ -15,7 +15,8 @@ PROMPT_SUFFIX = "\nAnswer (Yes/No): "
 DREC_SIMPLE_PROMPT = (
     "You are a recommender system. "
     "I will provide a user behavior sequence and a list of candidate items. "
-    "Please select an item from the list of candidates that user is expected to be interested in. "
+    "Respond only with the name of an item from the list of candidates that user is expected to be interested in. "
+    "Do not include any explanations, comments, or other words — only the expected item"
 )
 
-DREC_PROMPT_SUFFIX = "\nAnswer (selected item): "
+DREC_PROMPT_SUFFIX = "\nAnswer (the selected item): "

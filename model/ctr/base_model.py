@@ -1,12 +1,10 @@
 import torch
-import os
-import yaml
 
 from utils.model import match
 
 
-class BaseDrecModel:
-    KEY = ""
+class BaseCTRModel:
+    KEY = None
     NUM_LAYERS: int
     PREFIX_PROMPT: str
     SUFFIX_PROMPT: str
@@ -38,7 +36,6 @@ class BaseDrecModel:
     @classmethod
     def get_name(cls):
         return cls.__name__.replace('Model', '').upper()
-
 
     def load(self):
         self.model.to(self.device)
@@ -88,7 +85,7 @@ class BaseDrecModel:
     def embed(self, content, func='last', truncate=False):
         assert func in ['last', 'pool']
 
-        input_ids = BaseDrecModel.generate_input_ids(self, content, wrap_prompt=False)
+        input_ids = BaseModel.generate_input_ids(self, content, wrap_prompt=False)
         input_ids = input_ids.to(self.device)
 
         if truncate:

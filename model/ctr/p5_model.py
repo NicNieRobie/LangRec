@@ -3,7 +3,7 @@ import abc
 import torch
 from transformers import T5Config
 
-from model.base_model import BaseModel
+from model.ctr.base_model import BaseCTRModel
 from model.p5_utils.modeling import P5
 from model.p5_utils.tokenization import P5Tokenizer
 from utils.discovery.ignore_discovery import ignore_discovery
@@ -11,7 +11,7 @@ from utils.prompts import STRICT_PROMPT, PROMPT_SUFFIX
 
 
 @ignore_discovery
-class P5Model(BaseModel, abc.ABC):
+class P5Model(BaseCTRModel, abc.ABC):
     PREFIX_PROMPT = STRICT_PROMPT
     SUFFIX_PROMPT = PROMPT_SUFFIX
     BIT = 32

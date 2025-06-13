@@ -3,10 +3,10 @@ from typing import Optional
 import torch
 from sentence_transformers import SentenceTransformer
 
-from model.base_model import BaseModel
+from model.ctr.base_model import BaseCTRModel
 
 
-class SentenceBertModel(BaseModel):
+class SentenceBertModel(BaseCTRModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

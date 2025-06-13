@@ -29,6 +29,15 @@ arguments:
     type: str
     choices:
       - MOVIELENS
+  task:
+    help: Recommendation task to perform
+    required: false
+    type: str
+    choices:
+      - ctr
+      - drec
+      - seq
+    default: drec
   metrics:
     help: Comma-separated list of metrics to use for evaluation.
     required: false

@@ -24,6 +24,9 @@ class Runner:
         self.use_prompt = self.type == 'prompt'
         self.use_embed = self.type == 'embed'
 
+        assert config.task in ["ctr", "drec", "seq"]
+        self.task = config.task
+
         self.processor: BaseProcessor = self.load_processor()
         self.processor.load()
 
@@ -48,8 +51,10 @@ class Runner:
             self.exporter.reset()
 
     def load_processor(self, data_path=None):
-        # processors = ClassLibrary.ctr_processors()
-        processors = ClassLibrary.drec_processors()
+        # processors = ClassLibrary.drec_processors()
+
+        processors = ClassLibrary.processors(self.task)
+
 
         if self.dataset not in processors:
             raise ValueError(f'Unknown dataset: {self.dataset}')
@@ -59,8 +64,8 @@ class Runner:
         return processor(data_path=data_path)
 
     def load_model(self):
-        # models = ClassLibrary.models()
-        models = ClassLibrary.drec_models()
+        models = ClassLibrary.models(self.task)
+        # models = ClassLibrary.drec_models()
 
         if self.model_name not in models:
             raise ValueError(f'Unknown model: {self.model_name}')
@@ -106,8 +111,11 @@ class Runner:
         return None
 
     def test_prompt(self):
-        # input_template = "User behavior sequence: \n{0}\nCandidate item: {1}"
-        input_template = "User behavior sequence: \n{0}\nCandidate items: {1}"
+        if self.config.task in ["drec", "seq"]:
+            input_template = "User behavior sequence: \n{0}\nCandidate items: {1}"
+        else:
+            input_template = "User behavior sequence: \n{0}\nCandidate item: {1}"
+
         progress = 0
 
         if self.exporter.exists() and not self.config.latency:
@@ -124,13 +132,17 @@ class Runner:
 
             uid, item_id, history, candidate, label = data # candidate is a list of candidates in case of drec
 
+            if self.task == "drec":
+                candidate = "\n".join(candidate)
+
             response = self._retry_with_truncation(history, candidate, input_template)
 
             if response is None:
                 print(f'Failed to get response for {idx} ({uid}, {item_id})')
                 exit(0)
 
-            response = f'{response:.4f}'
+            if isinstance(response, int):
+                response = f'{response:.4f}'
             bar.set_postfix_str(f'label: {label}, response: {response}')
 
             if not self.config.latency:

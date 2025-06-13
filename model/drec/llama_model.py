@@ -2,7 +2,7 @@ import abc
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from utils.prompts import DREC_SIMPLE_PROMPT, DREC_PROMPT_SUFFIX
-from model.drec.base_drec_model import BaseDrecModel
+from model.drec.base_model import BaseDrecModel
 from utils.auth import HF_KEY
 from utils.discovery.ignore_discovery import ignore_discovery
 

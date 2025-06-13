@@ -2,13 +2,13 @@ import abc
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from utils.prompts import PROMPT_SUFFIX, SIMPLE_PROMPT
-from model.base_model import BaseModel
+from model.ctr.base_model import BaseCTRModel
 from utils.auth import HF_KEY
 from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery
-class LlamaModel(BaseModel, abc.ABC):
+class LlamaModel(BaseCTRModel, abc.ABC):
     PREFIX_PROMPT = SIMPLE_PROMPT
     SUFFIX_PROMPT = PROMPT_SUFFIX
     BIT = 16

@@ -1,10 +1,12 @@
 import torch
+import os
+import yaml
 
 from utils.model import match
 
 
-class BaseModel:
-    KEY = None
+class BaseDrecModel:
+    KEY = ""
     NUM_LAYERS: int
     PREFIX_PROMPT: str
     SUFFIX_PROMPT: str
@@ -37,6 +39,7 @@ class BaseModel:
     def get_name(cls):
         return cls.__name__.replace('Model', '').upper()
 
+
     def load(self):
         self.model.to(self.device)
         return self
@@ -45,29 +48,44 @@ class BaseModel:
         return self.prompt(content)
 
     def prompt(self, content):
-        input_ids = self.generate_input_ids(content, wrap_prompt=True)
-        input_ids = input_ids.to(self.device)
+        inputs = self.generate_input_ids(content, wrap_prompt=True)
+        inputs = inputs.to(self.device)
 
-        input_len = input_ids.size(-1)
+        input_len = inputs["input_ids"].size(-1)
 
         if input_len > self.max_len:
             return None
 
-        with torch.no_grad():
-            logits = self.model(input_ids).logits
+        generated_ids = self.model.generate(
+            inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            num_beams = 20,
+            repetition_penalty = 5.0,
+        )
 
-        logits = logits[0, -1, :]
+        # Return a set of tokens with the prompt itself omitted
+        return self.tokenizer.decode(generated_ids[0, input_len:], skip_special_tokens=True)
 
-        pos_score, neg_score = logits[self.pos_token].item(), logits[self.neg_token].item()
-        pos_prob, _ = self.softmax(torch.tensor([pos_score, neg_score])).tolist()
-
-        return pos_prob
+        # with torch.no_grad():
+        #     logits = self.model(input_ids).logits
+        #
+        # logits = logits[0, -1, :]
+        #
+        # pos_score, neg_score = logits[self.pos_token].item(), logits[self.neg_token].item()
+        # pos_prob, _ = self.softmax(torch.tensor([pos_score, neg_score])).tolist()
+        #
+        # return pos_prob
 
     def generate_input_ids(self, content, wrap_prompt=True):
         if wrap_prompt:
             content = self.PREFIX_PROMPT + content + self.SUFFIX_PROMPT
 
-        return self.tokenizer.encode(content, return_tensors='pt', add_special_tokens=False)
+        return self.tokenizer(
+            content,
+            return_tensors='pt',
+            add_special_tokens=False,
+            truncation=True,
+        )
 
     def generate_simple_input_ids(self, content):
         return self.tokenizer.encode(content or '', add_special_tokens=False)
@@ -85,7 +103,7 @@ class BaseModel:
     def embed(self, content, func='last', truncate=False):
         assert func in ['last', 'pool']
 
-        input_ids = BaseModel.generate_input_ids(self, content, wrap_prompt=False)
+        input_ids = BaseDrecModel.generate_input_ids(self, content, wrap_prompt=False)
         input_ids = input_ids.to(self.device)
 
         if truncate:

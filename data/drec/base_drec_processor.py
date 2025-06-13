@@ -11,7 +11,7 @@ from data.compressor import Compressor
 
 class BaseDrecProcessor(BaseProcessor, abc.ABC):
     MAX_HISTORY_PER_USER: int = 100
-    NEG_INTERACTIONS_PER_ITEM: int = 99
+    NEG_INTERACTIONS_PER_ITEM: int = 29
     CAST_TO_STRING: bool
 
     BASE_STORE_DIR = 'data_store'
