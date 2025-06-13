@@ -3,11 +3,14 @@ import os.path
 import numpy as np
 import torch
 
+from transformers import Trainer, TrainingArguments
+
 from data.base_processor import BaseProcessor
 from utils import bars
 from utils.discovery.class_library import ClassLibrary
 from utils.exporter import Exporter
 from utils.gpu import GPU
+
 
 from metrics.metrics_aggregator import MetricsAggregator
 
@@ -26,6 +29,9 @@ class Runner:
 
         assert config.task in ["ctr", "drec", "seq"]
         self.task = config.task
+
+        assert config.mode in ["test", "finetune", "testtune"]
+        self.subset = config.mode if config.mode in ["test", "finetune"] else "original"
 
         self.processor: BaseProcessor = self.load_processor()
         self.processor.load()
@@ -120,7 +126,7 @@ class Runner:
             progress = len(responses)
             print(f'Start from {progress}')
 
-        source_set = self.processor.get_source_set(self.config.source)
+        source_set = self.processor.get_source_set(self.subset)
         data_gen = self.processor.generate(slicer=self.config.history_window, source=self.config.source)
 
         for idx, data in enumerate(bar := bars.TestBar()(data_gen, total=len(source_set))):
@@ -197,7 +203,7 @@ class Runner:
             progress = len(responses)
             print(f'Start from {progress}')
 
-        source_set = self.processor.get_source_set(self.config.source)
+        source_set = self.processor.get_source_set(self.subset)
         data_gen = self.processor.generate(
             slicer=self.config.history_window,
             source=self.config.source,

@@ -58,6 +58,15 @@ arguments:
       - test
       - finetune
     default: test
+  mode:
+    help: Test, finetune or test&tune the model
+    required: false
+    type: str
+    choices:
+      - test
+      - finetune
+      - testtune
+    default: test
   type:
     required: false
     type: str
