@@ -3,6 +3,18 @@ import os
 import torch.cuda
 
 
+def get_device(gpu_num):
+    if gpu_num is None:
+        return GPU.auto_choose(torch_format=True)
+
+    if gpu_num == -1:
+        print('Choosing CPU device')
+        return 'cpu'
+
+    print(f'Choosing {gpu_num}-th GPU')
+    return f'CUDA: {gpu_num}'
+
+
 class GPU:
     @classmethod
     def parse_gpu_info(cls, line, args):
