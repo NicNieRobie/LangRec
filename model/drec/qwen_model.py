@@ -1,11 +1,14 @@
 import abc
 
-from model.large_model import LargeModel
+from utils.prompts import DREC_SIMPLE_PROMPT, DREC_PROMPT_SUFFIX
+from model.drec.large_model import LargeDrecModel
 from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery
-class QWenModel(LargeModel, abc.ABC):
+class QWenModel(LargeDrecModel, abc.ABC):
+    PREFIX_PROMPT = DREC_SIMPLE_PROMPT
+    SUFFIX_PROMPT = DREC_PROMPT_SUFFIX
     PEFT_TARGET_MODULES = ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj']
 
 
@@ -21,5 +24,5 @@ class QWen2_0_5BModel(QWenModel):
     pass
 
 
-class DeepSeekR1QWen_7BModel(LargeModel):
+class DeepSeekR1QWen_7BModel(LargeDrecModel):
     pass

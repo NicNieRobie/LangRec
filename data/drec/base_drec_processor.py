@@ -4,17 +4,18 @@ import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
+from tqdm import tqdm
 
 from data.base_processor import BaseProcessor
 from data.compressor import Compressor
 
 
-class BaseCTRProcessor(BaseProcessor, abc.ABC):
+class BaseDrecProcessor(BaseProcessor, abc.ABC):
     MAX_HISTORY_PER_USER: int = 100
-    MAX_INTERACTIONS_PER_USER: int = 20
+    NEG_INTERACTIONS_PER_ITEM: int = 29
     CAST_TO_STRING: bool
 
-    BASE_STORE_DIR = 'data_store/ctr'
+    BASE_STORE_DIR = 'data_store'
 
     def __init__(self, data_path='dataset'):
         super().__init__(data_path)
@@ -71,22 +72,49 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         for u in users:
             yield interactions.get_group(u)
 
-    def split(self, iterator, count) -> pd.DataFrame:
+    @property
+    def test_set_valid(self):
+        return os.path.exists(os.path.join(self.store_dir, 'test_drec.parquet')) or not self.test_set_required
+
+    @property
+    def finetune_set_valid(self):
+        return os.path.exists(os.path.join(self.store_dir, 'finetune_drec.parquet')) or not self.finetune_set_required
+
+    def split(self, iterator, items, count) -> pd.DataFrame:
+        """
+        Select `count` items from the dataset. Here `ITEM_ID_COL` stores a set of item indexes that has
+        `NEG_INTERACTIONS_PER_ITEM` negative examples and exactly 1 positive example. `LABEL_COL` stores
+        the index of the positive item.
+        """
         df = pd.DataFrame()
-        for group in iterator:
-            for label in range(2):
-                group_lbl = group[group[self.LABEL_COL] == label]
-                n = min(self.MAX_INTERACTIONS_PER_USER // 2, len(group_lbl))
-                df = pd.concat([df, group_lbl.sample(n=n, replace=False)])
-            if len(df) >= count:
-                break
+        with tqdm(total=count) as pbar:
+            for group in iterator:
+                pos_ids = group[group[self.LABEL_COL] == 1]
+                neg_ids = items[~items[self.ITEM_ID_COL].isin(pos_ids)]
+
+                group_data = {}
+                for _, row in pos_ids.iterrows():
+                    group_data[self.USER_ID_COL] = row[self.USER_ID_COL]
+                    group_data[self.LABEL_COL] = row[self.ITEM_ID_COL]
+                    group_data[self.ITEM_ID_COL] = [list(neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]) + [row[self.ITEM_ID_COL]]]
+
+                    df = pd.concat([df, pd.DataFrame.from_dict(group_data)])
+
+                    if len(df) % 100 == 0:
+                        pbar.update(100)
+
+                    if len(df) >= count:
+                        break
+
+                if len(df) >= count:
+                    break
 
         return df.reset_index(drop=True)
 
     def get_user_order(self, interactions, store_dir):
         path = os.path.join(store_dir, 'user_order.txt')
         if os.path.exists(path):
-            return [line.strip() for line in open(path)]
+            return [int(line.strip()) for line in open(path)]
 
         users = interactions[self.USER_ID_COL].unique().tolist()
 
@@ -98,7 +126,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         return users
 
     def load_public_sets(self):
-        if self.try_load_cached_splits():
+        if self.try_load_cached_splits(suffix="_drec"):
             return
 
         print(f'Generating test and finetune sets from {self.DATASET_NAME}...')
@@ -108,16 +136,16 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         iterator = self._group_iterator(users_order, interactions)
 
         if self.NUM_TEST:
-            self.test_set = self.split(iterator, self.NUM_TEST)
+            self.test_set = self.split(iterator, self.items, self.NUM_TEST)
             self.test_set.reset_index(drop=True, inplace=True)
-            self.loader.save_parquet('test', self.test_set)
-            print(f'Generated test set with {len(self.test_set)} samples')
+            self.loader.save_parquet('test_drec', self.test_set)
+            print(f'Generated test set for DRec task with {len(self.test_set)} samples')
 
         if self.NUM_FINETUNE:
-            self.finetune_set = self.split(iterator, self.NUM_FINETUNE)
+            self.finetune_set = self.split(iterator, self.items, self.NUM_FINETUNE)
             self.finetune_set.reset_index(drop=True, inplace=True)
-            self.loader.save_parquet('finetune', self.finetune_set)
-            print(f'Generated finetune set with {len(self.finetune_set)} samples')
+            self.loader.save_parquet('finetune_drec', self.finetune_set)
+            print(f'Generated finetune set for DRec task with {len(self.finetune_set)} samples')
 
         self._loaded = True
 
@@ -127,17 +155,15 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
 
     def load_user_order(self):
         path = os.path.join(self.store_dir, 'user_order.txt')
-
         if os.path.exists(path):
-            with open(path, 'r') as f:
-                return [line.strip() for line in f]
+            return [int(line.strip()) for line in open(path)]
 
         users = self.interactions[self.USER_ID_COL].unique().tolist()
+
         random.shuffle(users)
 
         with open(path, 'w') as f:
-            for u in users:
-                f.write(f'{u}\n')
+            f.write('\n'.join(users))
 
         return users
 
@@ -148,18 +174,19 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
 
         for _, row in df.iterrows():
             uid = row[self.USER_ID_COL]
-            candidate = row[self.ITEM_ID_COL]
+            candidates = row[self.ITEM_ID_COL]
             label = row[self.LABEL_COL]
 
             user = self.users.iloc[self.user_vocab[uid]]
             history = slicer(user[self.HISTORY_COL])
 
             if id_only:
-                yield uid, candidate, history, label
+                yield uid, candidates, history, label
             else:
                 history_str = [self.build_item_str(i, item_attrs, as_dict) for i in history]
-                candidate_str = self.build_item_str(candidate, item_attrs, as_dict)
-                yield uid, candidate, history_str, candidate_str, label
+                candidate_str = [self.build_item_str(candidate, item_attrs, as_dict) for candidate in candidates]
+                label_str = self.build_item_str(label, item_attrs, as_dict)
+                yield uid, candidates, history_str, candidate_str, label_str
 
     def generate(self, slicer: Union[int, Callable], item_attrs=None, source='test', id_only=False, as_dict=False, filter_func=None):
         if not self._loaded:

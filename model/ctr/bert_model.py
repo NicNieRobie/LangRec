@@ -6,10 +6,10 @@ from transformers.models.bert import BertForMaskedLM
 from transformers.models.bert.tokenization_bert import BertTokenizer
 
 from utils.prompts import SIMPLE_PROMPT, PROMPT_SUFFIX
-from model.base_model import BaseModel
+from model.ctr.base_model import BaseCTRModel
 
 
-class BertModel(BaseModel, abc.ABC):
+class BertModel(BaseCTRModel, abc.ABC):
     PREFIX_PROMPT = SIMPLE_PROMPT
     SUFFIX_PROMPT = PROMPT_SUFFIX
     BIT = 32

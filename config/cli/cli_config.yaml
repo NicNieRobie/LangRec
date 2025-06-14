@@ -29,6 +29,15 @@ arguments:
     type: str
     choices:
       - MOVIELENS
+  task:
+    help: Recommendation task to perform
+    required: false
+    type: str
+    choices:
+      - ctr
+      - drec
+      - seq
+    default: drec
   metrics:
     help: Comma-separated list of metrics to use for evaluation.
     required: false
@@ -48,6 +57,15 @@ arguments:
       - original
       - test
       - finetune
+    default: test
+  mode:
+    help: Test, finetune or test&tune the model
+    required: false
+    type: str
+    choices:
+      - test
+      - finetune
+      - testtune
     default: test
   type:
     required: false

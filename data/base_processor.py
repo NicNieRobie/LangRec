@@ -1,5 +1,6 @@
 import abc
 import os
+import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
@@ -113,7 +114,7 @@ class BaseProcessor(abc.ABC):
             return {attr: item.get(attr, '') for attr in item_attrs}
         if len(item_attrs) == 1:
             return item[item_attrs[0]]
-        return ', '.join(f'{attr}: {item[attr]}' for attr in item_attrs)
+        return ', '.join([f'{attr}: {item[attr]}' for attr in item_attrs])
 
     def iterate(self, slicer: Union[int, Callable], **kwargs):
         return self.generate(slicer, source='original')
@@ -124,16 +125,16 @@ class BaseProcessor(abc.ABC):
     def finetune(self, slicer: Union[int, Callable], **kwargs):
         return self.generate(slicer, source='finetune')
 
-    def try_load_cached_splits(self) -> bool:
+    def try_load_cached_splits(self, suffix:str=None) -> bool:
         if self.test_set_valid and self.finetune_set_valid:
             print(f'Loading {self.DATASET_NAME} splits from cache')
 
             if self.NUM_TEST:
-                self.test_set = self.loader.load_parquet('test')
+                self.test_set = self.loader.load_parquet('test'+suffix)
                 print('Loaded test set')
 
             if self.NUM_FINETUNE:
-                self.finetune_set = self.loader.load_parquet('finetune')
+                self.finetune_set = self.loader.load_parquet('finetune'+suffix)
                 print('Loaded finetune set')
 
             self._loaded = True
@@ -142,11 +143,11 @@ class BaseProcessor(abc.ABC):
 
         return False
 
-    def organize_item(self, iid, item_attrs: list, as_dict=False, item_self=False):
+    def organize_item(self, item_id, item_attrs: list, as_dict=False, item_self=False):
         if item_self:
-            item = iid
+            item = item_id
         else:
-            item = self.items.iloc[self.item_vocab[iid]]
+            item = self.items.iloc[self.item_vocab[item_id]]
 
         if as_dict:
             return {attr: item[attr] or '' for attr in item_attrs}
@@ -155,3 +156,40 @@ class BaseProcessor(abc.ABC):
             return item[item_attrs[0]]
 
         return ', '.join([f'{attr}: {item[attr]}' for attr in item_attrs])
+
+    def get_item_subset(self, source, slicer: Union[int, Callable]):
+        item_set = set()
+
+        if isinstance(slicer, int):
+            slicer = self._build_slicer(slicer)
+
+        source_set = self.get_source_set(source)
+        for _, row in source_set.iterrows():
+            user_id = row[self.USER_ID_COL]
+            item_id = row[self.ITEM_ID_COL]
+
+            user = self.users.iloc[self.user_vocab[user_id]]
+            history = slicer(user[self.HISTORY_COL])
+
+            item_set.add(item_id)
+            item_set.update(history)
+
+        return item_set
+
+    def load_valid_user_set(self, valid_ratio: float) -> set:
+        path = os.path.join(self.store_dir, f'valid_user_set_{valid_ratio}.txt')
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                return {line.strip() for line in f}
+
+        users = self.finetune_set[self.USER_ID_COL].unique().tolist()
+        random.shuffle(users)
+
+        valid_user_num = int(valid_ratio * len(users))
+        valid_user_set = users[:valid_user_num]
+
+        with open(path, 'w') as f:
+            for u in valid_user_set:
+                f.write(f'{u}\n')
+
+        return set(valid_user_set)

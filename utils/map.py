@@ -1,0 +1,10 @@
+class Map:
+    IID_COL = 'iid'
+    UID_COL = 'uid'
+    LEN_COL = 'length'
+    IPT_COL = 'input_ids'
+    LBL_COL = 'label'
+    IIP_COL = 'item_input_ids'
+    IIL_COL = 'item_input_len'
+    UIP_COL = 'user_input_ids'
+    UIL_COL = 'user_input_len'
