@@ -46,7 +46,10 @@ class ObjIdxVocabulary:
 
     def __getitem__(self, item):
         if isinstance(item, int):
-            return self.i2o[item]
+            if item >= self.size:
+                raise StopIteration
+            else:
+                return self.i2o[item]
 
         return self.o2i[item]
 

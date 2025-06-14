@@ -34,7 +34,6 @@ msgpack==1.1.0
 narwhals==1.41.1
 networkx==3.3
 numpy==2.2.6
-oba==0.1.1
 packaging==23.2
 pandas==2.3.0
 peft==0.15.2

@@ -3,7 +3,7 @@ import torch
 
 from peft import LoraConfig, get_peft_model
 
-from utils.map import Map
+from loader.map import Map
 from utils.model import match
 
 
@@ -133,7 +133,7 @@ class BaseModel:
 
         for name, module in self.model.named_modules():
             re_match = re.search(layer_prefix_pattern, name)
-            if match:
+            if re_match:
                 layer_idx = int(re_match.group(1))
                 if layer_idx >= tune_from:
                     if any(kw in name for kw in self.PEFT_TARGET_MODULES):

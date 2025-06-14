@@ -194,4 +194,4 @@ class BaseProcessor(abc.ABC):
             for u in valid_user_set:
                 f.write(f'{u}\n')
 
-        return set(valid_user_set)
+        return set(map(str, valid_user_set))
