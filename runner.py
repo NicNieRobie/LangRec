@@ -69,7 +69,7 @@ class Runner:
 
     def get_device(self):
         if self.config.gpu is None:
-            return GPU.auto_choose()
+            return GPU.auto_choose(torch_format=True)
 
         if self.config.gpu == -1:
             print('Choosing CPU device')
