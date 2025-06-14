@@ -1,4 +1,5 @@
 import os.path
+import sys
 
 import yaml
 import argparse
@@ -8,6 +9,8 @@ class ArgParser:
     def __init__(self, config_path):
         self.config = self._load_config(config_path)
         self.parser = self._init_parser()
+
+        self.__args_str = None
 
     @staticmethod
     def _load_config(config_path):
@@ -55,4 +58,10 @@ class ArgParser:
         return parser
 
     def parse_args(self):
+        self.__args_str = ' '.join(sys.argv[1:])
+
         return self.parser.parse_args()
+
+    @property
+    def args_str(self):
+        return self.__args_str

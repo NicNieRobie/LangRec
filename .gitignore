@@ -3,6 +3,7 @@ data_store/
 model_files/
 ckpt/
 encoding/
+config/datasphere/tasks/
 
 .auth
 

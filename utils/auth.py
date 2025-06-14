@@ -12,6 +12,7 @@ except FileNotFoundError:
     pass
 
 HF_KEY = auth.get('hf') or os.environ.get('HF_KEY')
+DATASPHERE_PROJ = auth.get('datasphere') or os.environ.get('DATASPHERE_PROJ')
 
 if not HF_KEY:
     raise RuntimeError("Hugging Face key not found.")
