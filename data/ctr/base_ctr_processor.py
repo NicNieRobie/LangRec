@@ -14,7 +14,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
     MAX_INTERACTIONS_PER_USER: int = 20
     CAST_TO_STRING: bool
 
-    BASE_STORE_DIR = 'data_store/ctr'
+    BASE_STORE_DIR = 'data_store'
 
     def __init__(self, data_path='dataset'):
         super().__init__(data_path)
@@ -71,6 +71,14 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         for u in users:
             yield interactions.get_group(u)
 
+    @property
+    def test_set_valid(self):
+        return os.path.exists(os.path.join(self.store_dir, 'test_ctr.parquet')) or not self.test_set_required
+
+    @property
+    def finetune_set_valid(self):
+        return os.path.exists(os.path.join(self.store_dir, 'finetune_ctr.parquet')) or not self.finetune_set_required
+
     def split(self, iterator, count) -> pd.DataFrame:
         df = pd.DataFrame()
         for group in iterator:
@@ -83,22 +91,8 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
 
         return df.reset_index(drop=True)
 
-    def get_user_order(self, interactions, store_dir):
-        path = os.path.join(store_dir, 'user_order.txt')
-        if os.path.exists(path):
-            return [line.strip() for line in open(path)]
-
-        users = interactions[self.USER_ID_COL].unique().tolist()
-
-        random.shuffle(users)
-
-        with open(path, 'w') as f:
-            f.write('\n'.join(users))
-
-        return users
-
     def load_public_sets(self):
-        if self.try_load_cached_splits():
+        if self.try_load_cached_splits(suffix="_ctr"):
             return
 
         print(f'Generating test and finetune sets from {self.DATASET_NAME}...')
@@ -110,13 +104,13 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         if self.NUM_TEST:
             self.test_set = self.split(iterator, self.NUM_TEST)
             self.test_set.reset_index(drop=True, inplace=True)
-            self.loader.save_parquet('test', self.test_set)
+            self.loader.save_parquet('test_ctr', self.test_set)
             print(f'Generated test set with {len(self.test_set)} samples')
 
         if self.NUM_FINETUNE:
             self.finetune_set = self.split(iterator, self.NUM_FINETUNE)
             self.finetune_set.reset_index(drop=True, inplace=True)
-            self.loader.save_parquet('finetune', self.finetune_set)
+            self.loader.save_parquet('finetune_ctr', self.finetune_set)
             print(f'Generated finetune set with {len(self.finetune_set)} samples')
 
         self._loaded = True
@@ -126,7 +120,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         return self.interactions if source == 'original' else getattr(self, f'{source}_set')
 
     def load_user_order(self):
-        path = os.path.join(self.store_dir, 'user_order.txt')
+        path = os.path.join(self.store_dir, 'user_order_ctr.txt')
 
         if os.path.exists(path):
             with open(path, 'r') as f:
@@ -136,8 +130,8 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         random.shuffle(users)
 
         with open(path, 'w') as f:
-            for u in users:
-                f.write(f'{u}\n')
+            users_str = [str(u) for u in users]
+            f.write('\n'.join(users_str))
 
         return users
 

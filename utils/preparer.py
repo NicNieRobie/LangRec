@@ -2,7 +2,6 @@ import os.path
 from typing import Optional
 
 import pandas as pd
-from unitok import Vocab, Space
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -10,6 +9,7 @@ from utils.dataset import Dataset
 from utils.map import Map
 from model.base_model import BaseModel
 from data.base_processor import BaseProcessor
+from utils.obj_idx_vocabulary import ObjIdxVocabulary
 
 
 class Preparer:
@@ -26,11 +26,9 @@ class Preparer:
             self.get_secondary_signature(),
         )
         os.makedirs(self.store_dir, exist_ok=True)
-        Space.push(self)
 
-        self.iid_vocab = Vocab(name=Map.IID_COL)
-        self.uid_vocab = Vocab(name=Map.UID_COL)
-        Space.pop(self)
+        self.iid_vocab = ObjIdxVocabulary(name=Map.IID_COL)
+        self.uid_vocab = ObjIdxVocabulary(name=Map.UID_COL)
 
         self.train_datapath = os.path.join(self.store_dir, 'train.parquet')
         self.valid_datapath = os.path.join(self.store_dir, 'valid.parquet')
