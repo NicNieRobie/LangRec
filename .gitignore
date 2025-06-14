@@ -4,6 +4,7 @@ model_files/
 prepare/
 ckpt/
 encoding/
+tuning/
 config/datasphere/tasks/
 
 .auth
