@@ -99,13 +99,15 @@ class BaseProcessor(abc.ABC):
     def _iterate(self, df: pd.DataFrame, slicer: Union[int, Callable], item_attrs=None, id_only=False, as_dict=False):
         raise NotImplementedError
 
-    def generate(self, slicer: Union[int, Callable], item_attrs=None, source='test', id_only=False, as_dict=False, filter_func=None):
+    def generate(self, slicer: Union[int, Callable], item_attrs=None, source='test', id_only=False, as_dict=False,
+                 filter_func=None):
         raise NotImplementedError
 
     @staticmethod
     def _build_slicer(slicer: int):
         def _slicer(x):
             return x[:slicer] if slicer > 0 else x[slicer:]
+
         return _slicer
 
     def build_item_str(self, item_id, item_attrs: list, as_dict=False, item_self=False):
@@ -125,16 +127,16 @@ class BaseProcessor(abc.ABC):
     def finetune(self, slicer: Union[int, Callable], **kwargs):
         return self.generate(slicer, source='finetune')
 
-    def try_load_cached_splits(self, suffix:str=None) -> bool:
+    def try_load_cached_splits(self, suffix: str = None) -> bool:
         if self.test_set_valid and self.finetune_set_valid:
             print(f'Loading {self.DATASET_NAME} splits from cache')
 
             if self.NUM_TEST:
-                self.test_set = self.loader.load_parquet('test'+suffix)
+                self.test_set = self.loader.load_parquet('test' + suffix)
                 print('Loaded test set')
 
             if self.NUM_FINETUNE:
-                self.finetune_set = self.loader.load_parquet('finetune'+suffix)
+                self.finetune_set = self.loader.load_parquet('finetune' + suffix)
                 print('Loaded finetune set')
 
             self._loaded = True

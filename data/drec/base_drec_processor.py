@@ -111,20 +111,6 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
 
         return df.reset_index(drop=True)
 
-    def get_user_order(self, interactions, store_dir):
-        path = os.path.join(store_dir, 'user_order.txt')
-        if os.path.exists(path):
-            return [int(line.strip()) for line in open(path)]
-
-        users = interactions[self.USER_ID_COL].unique().tolist()
-
-        random.shuffle(users)
-
-        with open(path, 'w') as f:
-            f.write('\n'.join(users))
-
-        return users
-
     def load_public_sets(self):
         if self.try_load_cached_splits(suffix="_drec"):
             return
@@ -154,16 +140,16 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
         return self.interactions if source == 'original' else getattr(self, f'{source}_set')
 
     def load_user_order(self):
-        path = os.path.join(self.store_dir, 'user_order.txt')
+        path = os.path.join(self.store_dir, 'user_order_drec.txt')
         if os.path.exists(path):
             return [int(line.strip()) for line in open(path)]
 
         users = self.interactions[self.USER_ID_COL].unique().tolist()
-
         random.shuffle(users)
 
         with open(path, 'w') as f:
-            f.write('\n'.join(users))
+            users_str = [str(u) for u in users]
+            f.write('\n'.join(users_str))
 
         return users
 
