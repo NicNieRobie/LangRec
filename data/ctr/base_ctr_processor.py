@@ -14,7 +14,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
     MAX_INTERACTIONS_PER_USER: int = 20
     CAST_TO_STRING: bool
 
-    BASE_STORE_DIR = 'data_store'
+    BASE_STORE_DIR = 'data_store/ctr'
 
     def __init__(self, data_path='dataset'):
         super().__init__(data_path)
@@ -73,14 +73,14 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
 
     def split(self, interactions, store_dir, count) -> pd.DataFrame:
         users_order = self.get_user_order(interactions, store_dir)
-        interactions = interactions.groupby(self.user_id_col)
+        interactions = interactions.groupby(self.USER_ID_COL)
         iterator = self._group_iterator(users_order, interactions)
 
         df = pd.DataFrame()
         for group in iterator:
             for label in range(2):
-                group_lbl = group[group[self.label_col] == label]
-                n = min(self.max_interactions // 2, len(group_lbl))
+                group_lbl = group[group[self.LABEL_COL] == label]
+                n = min(self.MAX_INTERACTIONS_PER_USER // 2, len(group_lbl))
                 df = pd.concat([df, group_lbl.sample(n=n, replace=False)])
             if len(df) >= count:
                 break
@@ -92,7 +92,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         if os.path.exists(path):
             return [line.strip() for line in open(path)]
 
-        users = interactions[self.user_id_col].unique().tolist()
+        users = interactions[self.USER_ID_COL].unique().tolist()
 
         random.shuffle(users)
 
@@ -130,7 +130,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
             with open(path, 'r') as f:
                 return [line.strip() for line in f]
 
-        users = self.interactions[self.UID_COL].unique().tolist()
+        users = self.interactions[self.USER_ID_COL].unique().tolist()
         random.shuffle(users)
 
         with open(path, 'w') as f:

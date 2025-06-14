@@ -13,7 +13,7 @@ from utils.discovery.ignore_discovery import ignore_discovery
 
 @ignore_discovery
 class BaseSeqProcessor(BaseProcessor, abc.ABC):
-    BASE_STORE_DIR = 'seq_data_store'
+    BASE_STORE_DIR = 'data_store/seq'
 
     def __init__(self, data_path='dataset'):
         super().__init__(data_path)

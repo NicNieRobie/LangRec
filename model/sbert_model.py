@@ -10,7 +10,7 @@ class SentenceBertModel(BaseModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.model = SentenceTransformer(self.KEY)
+        self.model = SentenceTransformer(self.key)
         self.model.get_sentence_embedding_dimension()
 
     def embed(self, content, func=None, truncate=None) -> Optional[torch.Tensor]:
