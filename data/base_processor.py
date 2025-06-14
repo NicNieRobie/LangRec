@@ -141,3 +141,17 @@ class BaseProcessor(abc.ABC):
             return True
 
         return False
+
+    def organize_item(self, iid, item_attrs: list, as_dict=False, item_self=False):
+        if item_self:
+            item = iid
+        else:
+            item = self.items.iloc[self.item_vocab[iid]]
+
+        if as_dict:
+            return {attr: item[attr] or '' for attr in item_attrs}
+
+        if len(item_attrs) == 1:
+            return item[item_attrs[0]]
+
+        return ', '.join([f'{attr}: {item[attr]}' for attr in item_attrs])
