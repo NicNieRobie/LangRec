@@ -71,11 +71,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         for u in users:
             yield interactions.get_group(u)
 
-    def split(self, interactions, store_dir, count) -> pd.DataFrame:
-        users_order = self.get_user_order(interactions, store_dir)
-        interactions = interactions.groupby(self.USER_ID_COL)
-        iterator = self._group_iterator(users_order, interactions)
-
+    def split(self, iterator, count) -> pd.DataFrame:
         df = pd.DataFrame()
         for group in iterator:
             for label in range(2):
@@ -106,14 +102,20 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
             return
 
         print(f'Generating test and finetune sets from {self.DATASET_NAME}...')
+        users_order = self.load_user_order()
+        interactions = self.interactions.groupby(self.USER_ID_COL)
+
+        iterator = self._group_iterator(users_order, interactions)
 
         if self.NUM_TEST:
-            self.test_set = self.split(self.interactions, self.store_dir, self.NUM_TEST)
+            self.test_set = self.split(iterator, self.NUM_TEST)
+            self.test_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('test', self.test_set)
             print(f'Generated test set with {len(self.test_set)} samples')
 
         if self.NUM_FINETUNE:
-            self.finetune_set = self.split(self.interactions, self.store_dir, self.NUM_FINETUNE)
+            self.finetune_set = self.split(iterator, self.NUM_FINETUNE)
+            self.finetune_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('finetune', self.finetune_set)
             print(f'Generated finetune set with {len(self.finetune_set)} samples')
 

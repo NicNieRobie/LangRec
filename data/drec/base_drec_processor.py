@@ -4,6 +4,7 @@ import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
+from tqdm import tqdm
 
 from data.base_processor import BaseProcessor
 from data.compressor import Compressor
@@ -79,49 +80,34 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
     def finetune_set_valid(self):
         return os.path.exists(os.path.join(self.store_dir, 'finetune_drec.parquet')) or not self.finetune_set_required
 
-    def try_load_cached_splits(self) -> bool:
-        if self.test_set_valid and self.finetune_set_valid:
-            print(f'Loading {self.DATASET_NAME} splits from cache')
-
-            if self.NUM_TEST:
-                self.test_set = self.loader.load_parquet('test_drec')
-                print('Loaded test set')
-
-            if self.NUM_FINETUNE:
-                self.finetune_set = self.loader.load_parquet('finetune_drec')
-                print('Loaded finetune set')
-
-            self._loaded = True
-
-            return True
-
-        return False
-
-    def split(self, interactions, items, store_dir, count) -> pd.DataFrame:
+    def split(self, iterator, items, count) -> pd.DataFrame:
         """
         Select `count` items from the dataset. Here `ITEM_ID_COL` stores a set of item indexes that has
         `NEG_INTERACTIONS_PER_ITEM` negative examples and exactly 1 positive example. `LABEL_COL` stores
         the index of the positive item.
         """
-        users_order = self.get_user_order(interactions, store_dir)
-        interactions = interactions.groupby(self.USER_ID_COL)
-        iterator = self._group_iterator(users_order, interactions)
-
         df = pd.DataFrame()
-        for group in iterator:
-            pos_ids = group[group[self.LABEL_COL] == 1]
-            neg_ids = items[~items[self.ITEM_ID_COL].isin(pos_ids)]
+        with tqdm(total=count) as pbar:
+            for group in iterator:
+                pos_ids = group[group[self.LABEL_COL] == 1]
+                neg_ids = items[~items[self.ITEM_ID_COL].isin(pos_ids)]
 
-            group_data = {}
-            for _, row in pos_ids.iterrows():
-                group_data[self.USER_ID_COL] = row[self.USER_ID_COL]
-                group_data[self.LABEL_COL] = row[self.ITEM_ID_COL]
-                group_data[self.ITEM_ID_COL] = [list(neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]) + [row[self.ITEM_ID_COL]]]
+                group_data = {}
+                for _, row in pos_ids.iterrows():
+                    group_data[self.USER_ID_COL] = row[self.USER_ID_COL]
+                    group_data[self.LABEL_COL] = row[self.ITEM_ID_COL]
+                    group_data[self.ITEM_ID_COL] = [list(neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]) + [row[self.ITEM_ID_COL]]]
 
-            df = pd.concat([df, pd.DataFrame.from_dict(group_data)])
+                    df = pd.concat([df, pd.DataFrame.from_dict(group_data)])
 
-            if len(df) >= count:
-                break
+                    if len(df) % 100 == 0:
+                        pbar.update(100)
+
+                    if len(df) >= count:
+                        break
+
+                if len(df) >= count:
+                    break
 
         return df.reset_index(drop=True)
 
@@ -140,18 +126,24 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
         return users
 
     def load_public_sets(self):
-        if self.try_load_cached_splits():
+        if self.try_load_cached_splits(suffix="_drec"):
             return
 
         print(f'Generating test and finetune sets from {self.DATASET_NAME}...')
+        users_order = self.load_user_order()
+        interactions = self.interactions.groupby(self.USER_ID_COL)
+
+        iterator = self._group_iterator(users_order, interactions)
 
         if self.NUM_TEST:
-            self.test_set = self.split(self.interactions, self.items, self.store_dir, self.NUM_TEST)
+            self.test_set = self.split(iterator, self.items, self.NUM_TEST)
+            self.test_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('test_drec', self.test_set)
             print(f'Generated test set for DRec task with {len(self.test_set)} samples')
 
         if self.NUM_FINETUNE:
-            self.finetune_set = self.split(self.interactions, self.items, self.store_dir, self.NUM_FINETUNE)
+            self.finetune_set = self.split(iterator, self.items, self.NUM_FINETUNE)
+            self.finetune_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('finetune_drec', self.finetune_set)
             print(f'Generated finetune set for DRec task with {len(self.finetune_set)} samples')
 
@@ -163,17 +155,15 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
 
     def load_user_order(self):
         path = os.path.join(self.store_dir, 'user_order.txt')
-
         if os.path.exists(path):
-            with open(path, 'r') as f:
-                return [line.strip() for line in f]
+            return [int(line.strip()) for line in open(path)]
 
         users = self.interactions[self.USER_ID_COL].unique().tolist()
+
         random.shuffle(users)
 
         with open(path, 'w') as f:
-            for u in users:
-                f.write(f'{u}\n')
+            f.write('\n'.join(users))
 
         return users
 

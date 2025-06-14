@@ -3,7 +3,6 @@ from typing import Optional
 
 import pandas as pd
 from unitok import Vocab, Space
-from UniTokv3 import Vocab as VocabV3
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -29,12 +28,8 @@ class Preparer:
         os.makedirs(self.store_dir, exist_ok=True)
         Space.push(self)
 
-        if os.path.exists(os.path.join(self.store_dir, f'tok.{Map.IID_COL}.dat')):
-            self.iid_vocab = VocabV3(name=Map.IID_COL)
-            self.uid_vocab = VocabV3(name=Map.UID_COL)
-        else:
-            self.iid_vocab = Vocab(name=Map.IID_COL)
-            self.uid_vocab = Vocab(name=Map.UID_COL)
+        self.iid_vocab = Vocab(name=Map.IID_COL)
+        self.uid_vocab = Vocab(name=Map.UID_COL)
         Space.pop(self)
 
         self.train_datapath = os.path.join(self.store_dir, 'train.parquet')

@@ -125,16 +125,16 @@ class BaseProcessor(abc.ABC):
     def finetune(self, slicer: Union[int, Callable], **kwargs):
         return self.generate(slicer, source='finetune')
 
-    def try_load_cached_splits(self) -> bool:
+    def try_load_cached_splits(self, suffix:str=None) -> bool:
         if self.test_set_valid and self.finetune_set_valid:
             print(f'Loading {self.DATASET_NAME} splits from cache')
 
             if self.NUM_TEST:
-                self.test_set = self.loader.load_parquet('test')
+                self.test_set = self.loader.load_parquet('test'+suffix)
                 print('Loaded test set')
 
             if self.NUM_FINETUNE:
-                self.finetune_set = self.loader.load_parquet('finetune')
+                self.finetune_set = self.loader.load_parquet('finetune'+suffix)
                 print('Loaded finetune set')
 
             self._loaded = True
