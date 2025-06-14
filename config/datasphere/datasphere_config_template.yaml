@@ -1,0 +1,17 @@
+name: langrec-{uuid}
+desc: Script to run LangRec benchmark
+cmd: python main.py {args}
+env:
+  python:
+    type: manual
+    version: 3.11
+    requirements-file: requirements.txt
+inputs:
+  - config/
+  - data_store/
+  - encoding/
+  - ckpt/
+  - model_files/
+outputs:
+  - results
+cloud-instance-type: g1.1
