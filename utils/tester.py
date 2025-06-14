@@ -105,6 +105,10 @@ class Tester:
 
             if isinstance(response, int):
                 response = f'{response:.4f}'
+            elif isinstance(response, str):
+                response = response.strip(" \n")
+            else:
+                pass
             bar.set_postfix_str(f'label: {label}, response: {response}')
 
             if not self.config.latency:

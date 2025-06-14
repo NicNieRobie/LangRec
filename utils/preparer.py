@@ -6,7 +6,7 @@ from unitok import Vocab, Space
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from loader.dataset import Dataset
+from utils.dataset import Dataset
 from utils.map import Map
 from model.base_model import BaseModel
 from data.base_processor import BaseProcessor
