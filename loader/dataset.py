@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset as BaseDataset
 from tqdm import tqdm
 
-from utils.map import Map
+from loader.map import Map
 
 
 class Dataset(BaseDataset):

@@ -69,7 +69,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
     @staticmethod
     def _group_iterator(users, interactions):
         for u in users:
-            yield interactions.get_group(u)
+            yield interactions.get_group(int(u))
 
     @property
     def test_set_valid(self):

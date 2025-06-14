@@ -98,3 +98,75 @@ arguments:
     required: false
     type: int
     default: 4141
+  batch_size:
+    help: Size of batches used in finetuning
+    required: false
+    type: int
+    default: 16
+  tune_from:
+    help: Layer from which he finetuning begins
+    required: false
+    type: int
+    default: 0
+  use_lora:
+    help: Toggles the usage of LoRA finetuning technique
+    required: false
+    type: bool
+    default: true
+  lora_r:
+    required: false
+    type: int
+    default: 16
+  lora_alpha:
+    required: false
+    type: int
+    default: 32
+  lora_dropout:
+    help: The probability that a trainable parameter will be artificially set to zero for a given batch of training
+    required: false
+    type: float
+    default: 0.1
+  valid_ratio:
+    help: Part of finetune set used for validation
+    required: false
+    type: float
+    default: 0.1
+  valid_metric:
+    help: Metric used to evaluate models on validation step
+    required: false
+    type: str
+    default: 'GAUC'
+  lr:
+    help: Learning rate
+    required: false
+    type: float
+    default: 0.0001
+  eval_interval:
+    help: Evaluation interval
+    required: false
+    type: int
+    default: 0
+  acc_batch:
+    help: Batch size for accumulative step
+    required: false
+    type: int
+    default: 1
+  align_step:
+    help: Step size for alignment method of class Tuner
+    required: false
+    type: float
+    default: 1.0
+  patience:
+    help:
+    required: false
+    type: int
+    default: 2
+  slicer:
+    help: The number of dataset rows to be used. Positive values tae them from the beginning, negative values -- from the tail
+    required: false
+    type: int
+    default: -20
+  num_epochs:
+    required: false
+    type: int
+    default: 3

@@ -1,6 +1,7 @@
 export/
 data_store/
 model_files/
+prepare/
 ckpt/
 encoding/
 config/datasphere/tasks/

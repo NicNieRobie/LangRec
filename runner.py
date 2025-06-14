@@ -64,7 +64,7 @@ class Runner:
 
     def run(self):
         if self.config.mode in ["finetune", "testtune"]:
-            raise NotImplementedError()
+            self.tuner()
 
         if self.config.mode in ["test", "testtune"]:
             self.tester()
