@@ -118,53 +118,6 @@ class SIDEncoder(BaseEncoder):
 
         return final_dict
 
-    # def encode(self):
-    #
-    #     enc_loader = DataLoader(data, batch_size=64, shuffle=False, num_workers=config.num_workers, pin_memory=True)
-    #     all_indices, all_indices_str, all_distances = [], [], []
-    #
-    #     for batch in tqdm(enc_loader, desc="Encoding"):
-    #         batch = batch.to(device)
-    #         indices, distances = model.get_indices(batch, use_sk=False)
-    #         print(indices.shape)
-    #         indices = indices.view(-1, indices.shape[-1]).cpu().numpy()
-    #         print('after', indices.shape)
-    #         distances = distances.cpu().tolist()
-    #
-    #         for index in indices:
-    #             code = [int(i) for i in index]
-    #             code_str = str(code)
-    #             all_indices.append(code)
-    #             all_indices_str.append(code_str)
-    #
-    #         all_distances.extend(distances)
-    #
-    #     all_distances = np.array(all_distances)
-    #     sort_distances_index = np.argsort(all_distances, axis=2)
-    #     level = len(config.num_emb_list) - 1
-    #     max_num = int(config.num_emb_list[0])
-    #
-    #     all_indices, all_indices_str = resolve_collisions(all_indices, all_indices_str, all_distances,
-    #                                                       sort_distances_index,
-    #                                                       level, max_num)
-    #
-    #     print("Total items:", len(all_indices))
-    #     print("Max collisions:", max(get_indices_count(all_indices_str).values()))
-    #     print("Final collision rate:", (len(all_indices_str) - len(set(all_indices_str))) / len(all_indices_str))
-    #
-    #     item_dict = dict(zip(range(len(processor.items)), processor.items[processor.ITEM_ID_COL]))
-    #
-    #     final_dict = {
-    #         item_dict[item_idx]: [int(code) for code in codes]
-    #         for item_idx, codes in enumerate(all_indices)
-    #     }
-    #
-    #     assert len(final_dict) == len(set(str(v) for v in final_dict.values())), "Collision not resolved"
-    #
-    #     os.makedirs('./code', exist_ok=True)
-    #     output_path = f'./code/{dataset}.{model_name}.{sizes}.{task}.code2'
-    #     json.dump(final_dict, open(output_path, 'w'), indent=2)
-
     @staticmethod
     def check_collision(indices_list):
         return len(indices_list) == len(set(indices_list))
