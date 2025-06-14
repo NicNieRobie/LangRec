@@ -1,5 +1,6 @@
 import abc
 import os
+import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
@@ -142,11 +143,11 @@ class BaseProcessor(abc.ABC):
 
         return False
 
-    def organize_item(self, iid, item_attrs: list, as_dict=False, item_self=False):
+    def organize_item(self, item_id, item_attrs: list, as_dict=False, item_self=False):
         if item_self:
-            item = iid
+            item = item_id
         else:
-            item = self.items.iloc[self.item_vocab[iid]]
+            item = self.items.iloc[self.item_vocab[item_id]]
 
         if as_dict:
             return {attr: item[attr] or '' for attr in item_attrs}
@@ -155,3 +156,40 @@ class BaseProcessor(abc.ABC):
             return item[item_attrs[0]]
 
         return ', '.join([f'{attr}: {item[attr]}' for attr in item_attrs])
+
+    def get_item_subset(self, source, slicer: Union[int, Callable]):
+        item_set = set()
+
+        if isinstance(slicer, int):
+            slicer = self._build_slicer(slicer)
+
+        source_set = self.get_source_set(source)
+        for _, row in source_set.iterrows():
+            user_id = row[self.USER_ID_COL]
+            item_id = row[self.ITEM_ID_COL]
+
+            user = self.users.iloc[self.user_vocab[user_id]]
+            history = slicer(user[self.HISTORY_COL])
+
+            item_set.add(item_id)
+            item_set.update(history)
+
+        return item_set
+
+    def load_valid_user_set(self, valid_ratio: float) -> set:
+        path = os.path.join(self.store_dir, f'valid_user_set_{valid_ratio}.txt')
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                return {line.strip() for line in f}
+
+        users = self.finetune_set[self.USER_ID_COL].unique().tolist()
+        random.shuffle(users)
+
+        valid_user_num = int(valid_ratio * len(users))
+        valid_user_set = users[:valid_user_num]
+
+        with open(path, 'w') as f:
+            for u in valid_user_set:
+                f.write(f'{u}\n')
+
+        return set(valid_user_set)

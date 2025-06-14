@@ -2,6 +2,7 @@ from data.base_processor import BaseProcessor
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
 from utils.tester import Tester
+from utils.tuner import Tuner
 
 
 class Runner:
@@ -24,6 +25,10 @@ class Runner:
 
         if self.config.mode in ["test", "testtune"]:
             self.tester = Tester(self.config, self.processor, self.model)
+
+        if self.config.mode in ["finetune", "testtune"]:
+            self.tuner = Tuner(self.config, self.processor, self.model)
+
 
     def load_processor(self, data_path=None):
         processors = ClassLibrary.processors(self.task)

@@ -138,12 +138,6 @@ class ClassLibrary:
         else:
             return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
 
-    # @staticmethod
-    # def drec_models():
-    #     path = os.path.sep.join(['model', 'drec'])
-    #
-    #     return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
-
     @staticmethod
     def metrics():
         return ClassLibraryFactory.create_library(BaseMetric, 'metrics')
