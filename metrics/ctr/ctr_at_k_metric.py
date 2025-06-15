@@ -1,9 +1,9 @@
-from metrics.base_metric import BaseMetric
+from metrics.ctr.base_ctr_metric import BaseCTRMetric
 from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery
-class AtKMetric(BaseMetric):
+class CTRAtKMetric(BaseCTRMetric):
     k: int
 
     def __init__(self, k):

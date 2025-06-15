@@ -4,11 +4,13 @@ import os
 from typing import TypeVar, Type, List
 
 from data.ctr.base_ctr_processor import BaseCTRProcessor
-from data.seq.base_seq_processor import BaseSeqProcessor
 from data.drec.base_drec_processor import BaseDrecProcessor
+from data.seq.base_seq_processor import BaseSeqProcessor
+from metrics.ctr.base_ctr_metric import BaseCTRMetric
+from metrics.seq.base_seq_metric import BaseSeqMetric
 from model.ctr.base_model import BaseCTRModel
 from model.drec.base_model import BaseDrecModel
-from metrics.base_metric import BaseMetric
+from model.seq.base_seq_model import BaseSeqModel
 
 T = TypeVar('T')
 
@@ -27,7 +29,7 @@ class ClassDiscoverer:
         classes = []
 
         for file_path in file_paths:
-            file_name = file_path.split(os.path.sep)[-1].split('.')[0]
+            file_name = os.path.splitext(os.path.basename(file_path))[0]
             module_path = f'{self._module_dir.replace(os.path.sep, ".")}.{file_name}'
 
             try:
@@ -55,7 +57,8 @@ class ClassRegistry:
 
     @staticmethod
     def _default_normalizer(cls, suffix):
-        return cls.upper().replace(suffix.upper(), '')
+        pascal_suffix = ''.join(word.capitalize() for word in suffix.split('_'))
+        return cls.replace(pascal_suffix, '').upper()
 
     def _build_class_dict(self):
         class_dict = {}
@@ -118,26 +121,32 @@ class ClassLibrary:
         assert task in ["ctr", "seq", "drec"]
         path = os.path.sep.join(["data", task])
 
-        if task == "ctr":
-            return ClassLibraryFactory.create_library(BaseCTRProcessor, path, 'processor')
-        elif task == "seq":
-            return ClassLibraryFactory.create_library(BaseSeqProcessor, path, 'processor')
-        else:
-            return ClassLibraryFactory.create_library(BaseDrecProcessor, path, 'processor')
+        base_class = {
+            "ctr": BaseCTRProcessor,
+            "seq": BaseSeqProcessor,
+            "drec": BaseDrecProcessor,
+        }[task]
+
+        return ClassLibraryFactory.create_library(base_class, path, 'processor')
 
     @staticmethod
     def models(task: str):
+        assert task in ["ctr", "seq", "drec"]
         path = os.path.sep.join(['model', task])
 
         if task == "ctr":
             return ClassLibraryFactory.create_library(BaseCTRModel, path, 'model')
         elif task == "seq":
-            # TODO Add working SeqRec models
-            # return ClassLibraryFactory.create_library(BaseSeqModel, path, 'model')
-            raise NotImplementedError
+            return ClassLibraryFactory.create_library(BaseSeqModel, path, 'seq_model')
         else:
             return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
 
     @staticmethod
-    def metrics():
-        return ClassLibraryFactory.create_library(BaseMetric, 'metrics')
+    def ctr_metrics():
+        path = os.path.sep.join(['metrics', 'ctr'])
+        return ClassLibraryFactory.create_library(BaseCTRMetric, path)
+
+    @staticmethod
+    def seq_metrics():
+        path = os.path.sep.join(['metrics', 'seq'])
+        return ClassLibraryFactory.create_library(BaseSeqMetric, path)

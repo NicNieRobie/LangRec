@@ -12,6 +12,11 @@ SIMPLE_PROMPT = (
 
 PROMPT_SUFFIX = "\nAnswer (Yes/No): "
 
+SEQ_PROMPT = (
+    "You are a recommender system. "
+    "Given a user's past sequence of interactions, suggest the next most relevant item they are likely to engage with."
+)
+
 DREC_SIMPLE_PROMPT = (
     "You are a recommender system. "
     "I will provide a user behavior sequence and a list of candidate items. "

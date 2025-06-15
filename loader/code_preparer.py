@@ -17,7 +17,7 @@ class CodePreparer(Preparer):
         print(f'preprocessing on the {self.processor.dataset_name} dataset')
 
         for index, data in tqdm(
-                enumerate(self.processor.generate(slicer=self.conf.slicer, source=source, id_only=True)),
+                enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
                 total=len(self.processor.get_source_set(source=source))
         ):
             uid, iid, history, label = data
@@ -30,6 +30,7 @@ class CodePreparer(Preparer):
             for i in range(len(history)):
                 input_ids += numbers[i + 1] + items[history[i]] + line
                 vocab_ids += [TV.LLM] * len(numbers[i + 1]) + [TV.COD] * len(items[history[i]]) + [TV.LLM] * len(line)
+
             input_ids += item + current_item + suffix
             vocab_ids += [TV.LLM] * len(item) + [TV.COD] * len(current_item) + [TV.LLM] * len(suffix)
 

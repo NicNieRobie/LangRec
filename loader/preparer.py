@@ -15,10 +15,10 @@ from utils.obj_idx_vocabulary import ObjIdxVocabulary
 class Preparer:
     DATASET_CLASS = Dataset
 
-    def __init__(self, processor: BaseProcessor, model: BaseModel, conf):
+    def __init__(self, processor: BaseProcessor, model: BaseModel, config):
         self.processor = processor
         self.model = model
-        self.conf = conf
+        self.config = config
 
         self.store_dir = os.path.join(
             'prepare',
@@ -43,10 +43,10 @@ class Preparer:
         return f'{self.processor.dataset_name}_{self.model.get_name()}'
 
     def get_secondary_signature(self):
-        return f'{self.conf.valid_ratio}'
+        return f'{self.config.valid_ratio}'
 
     def tokenize_items(self, source='finetune', item_attrs=None):
-        item_set = self.processor.get_item_subset(source, slicer=self.conf.slicer)
+        item_set = self.processor.get_item_subset(source, slicer=self.config.history_window)
         item_attrs = item_attrs or self.processor.default_attrs
 
         item_dict = dict()
@@ -65,7 +65,7 @@ class Preparer:
         max_sequence_len = 0
         print(f'preprocessing on the {self.processor.dataset_name} dataset')
         for index, data in tqdm(
-                enumerate(self.processor.generate(slicer=self.conf.slicer, source=source, id_only=True)),
+                enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
                 total=len(self.processor.get_source_set(source=source))
         ):
             uid, iid, history, label = data
@@ -110,7 +110,7 @@ class Preparer:
         return datalist
 
     def split_datalist(self, datalist):
-        valid_user_set = self.processor.load_valid_user_set(self.conf.valid_ratio)
+        valid_user_set = self.processor.load_valid_user_set(self.config.valid_ratio, self.config.task)
         valid_user_set = [self.uid_vocab[uid] for uid in valid_user_set]
 
         train_datalist = []
@@ -125,7 +125,7 @@ class Preparer:
 
     def _pack_datalist(self, datalist):
         dataset = self.DATASET_CLASS(datalist)
-        return DataLoader(dataset, batch_size=self.conf.batch_size, shuffle=True)
+        return DataLoader(dataset, batch_size=self.config.batch_size, shuffle=True)
 
     def load_or_generate(self, mode='train'):
         assert mode in ['train', 'valid', 'test'], f'unknown mode: {mode}'

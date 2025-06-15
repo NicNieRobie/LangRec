@@ -19,7 +19,7 @@ class DiscreteCodePreparer(CodePreparer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        code_indices, _, _ = get_code_indices(self.conf.code_path)
+        code_indices, _, _ = get_code_indices(self.config.code_path)
 
         self.processor.load()
         self.code_indices = dict()
@@ -28,7 +28,7 @@ class DiscreteCodePreparer(CodePreparer):
 
         item_indices = self.processor.items[self.processor.ITEM_ID_COL]
         for item_index in item_indices:
-            current_indices = code_indices[item_index]
+            current_indices = code_indices[str(item_index)]
             self.code_indices[item_index] = current_indices
             current_node = self.code_tree
             for index in current_indices:
@@ -48,7 +48,7 @@ class DiscreteCodePreparer(CodePreparer):
 
     def get_secondary_meta(self):
         return dict(
-            code_path=self.conf.code_path,
+            code_path=self.config.code_path,
         )
 
     def get_secondary_signature(self):
@@ -56,7 +56,7 @@ class DiscreteCodePreparer(CodePreparer):
         keys = sorted(meta.keys())
         key = '-'.join([f'{k}={meta[k]}' for k in keys])
         md5 = hashlib.md5(key.encode()).hexdigest()
-        return md5[:6] + f'@{self.conf.valid_ratio}'
+        return md5[:6] + f'@{self.config.valid_ratio}'
 
     def tokenize_items(self, source='finetune', item_attrs=None):
         return self.code_indices

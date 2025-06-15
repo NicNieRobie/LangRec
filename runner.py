@@ -1,6 +1,9 @@
 from data.base_processor import BaseProcessor
+from model.seq.base_seq_model import BaseSeqModel
+from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
+from utils.seq_tuner import SeqTuner
 from utils.tester import Tester
 from utils.tuner import Tuner
 
@@ -21,14 +24,18 @@ class Runner:
         self.processor: BaseProcessor = self.load_processor()
         self.processor.load()
 
-        self.model = self.load_model()
+        if self.config.mode in ["finetune", "testtune"]:
+            if config.task == 'seq':
+                self.tuner = SeqTuner(self.config, self.processor)
+            else:
+                self.tuner = Tuner(self.config, self.processor)
+
+            self.model = self.tuner.get_model()
+        else:
+            self.model = self.load_model()
 
         if self.config.mode in ["test", "testtune"]:
             self.tester = Tester(self.config, self.processor, self.model)
-
-        if self.config.mode in ["finetune", "testtune"]:
-            self.tuner = Tuner(self.config, self.processor, self.model)
-
 
     def load_processor(self, data_path=None):
         processors = ClassLibrary.processors(self.task)
@@ -48,7 +55,12 @@ class Runner:
 
         model = models[self.model_name]
 
-        return model(device=self.get_device()).load()
+        if issubclass(model, BaseSeqModel):
+            _, code_list, num_codes = get_code_indices(self.config.code_path)
+
+            return model(device=self.get_device(), num_codes=num_codes, code_list=code_list).load()
+        else:
+            return model(device=self.get_device()).load()
 
     def get_device(self):
         if self.config.gpu is None:
@@ -60,7 +72,6 @@ class Runner:
 
         print(f'Choosing {self.config.gpu}-th GPU')
         return f'CUDA: {self.config.gpu}'
-
 
     def run(self):
         if self.config.mode in ["finetune", "testtune"]:

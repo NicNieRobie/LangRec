@@ -2,10 +2,10 @@ from typing import Union
 
 from sklearn.metrics import log_loss
 
-from metrics.base_metric import BaseMetric
+from metrics.ctr.base_ctr_metric import BaseCTRMetric
 
 
-class LogLoss(BaseMetric):
+class LogLoss(BaseCTRMetric):
     name = 'LogLoss'
     group = False
     minimize = True

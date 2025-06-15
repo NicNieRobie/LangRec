@@ -13,6 +13,9 @@ if __name__ == "__main__":
 
     result = id_encoder.encode()
 
+    print("49808" in result)
+    print(49808 in result)
+
     for i, (k, v) in enumerate(result.items()):
         print(k, v)
         if i == 4:
