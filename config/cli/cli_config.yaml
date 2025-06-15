@@ -161,12 +161,31 @@ arguments:
     required: false
     type: int
     default: 2
-  slicer:
-    help: The number of dataset rows to be used. Positive values tae them from the beginning, negative values -- from the tail
-    required: false
-    type: int
-    default: -20
   num_epochs:
     required: false
     type: int
     default: 3
+  code_path:
+    help: The path to item representation encodings
+    required: false
+    type: str
+  alignment:
+    required: false
+    type: bool
+    default: false
+  valid_step:
+    required: false
+    type: int
+    default: 1
+  search_mode:
+    required: false
+    type: str
+    choices:
+      - list
+      - tree
+      - prod
+    default: prod
+  search_width:
+    required: false
+    type: int
+    default: 20

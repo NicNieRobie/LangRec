@@ -178,8 +178,8 @@ class BaseProcessor(abc.ABC):
 
         return item_set
 
-    def load_valid_user_set(self, valid_ratio: float) -> set:
-        path = os.path.join(self.store_dir, f'valid_user_set_{valid_ratio}.txt')
+    def load_valid_user_set(self, valid_ratio: float, task: str) -> set:
+        path = os.path.join(self.store_dir, f'valid_user_set_{valid_ratio}_{task}.txt')
         if os.path.exists(path):
             with open(path, 'r') as f:
                 return {line.strip() for line in f}

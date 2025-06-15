@@ -1,10 +1,10 @@
 from typing import Union
 
-from metrics.at_k_metric import AtKMetric
+from metrics.ctr.ctr_at_k_metric import CTRAtKMetric
 
 
-class Recall(AtKMetric):
-    name = 'Recall'
+class HitRatio(CTRAtKMetric):
+    name = 'HR'
     group = True
     minimize = False
 
@@ -14,4 +14,4 @@ class Recall(AtKMetric):
 
         scores, labels = zip(*sorted_score_label_pairs)
 
-        return sum(labels[:self.k]) * 1. / sum(labels)
+        return int(1 in labels[:self.k])

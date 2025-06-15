@@ -1,21 +1,20 @@
-import json
+import os.path
 import os.path
 import random
 import sys
 
 import numpy as np
 import torch
-from box import Box
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from utils.discovery.class_library import ClassLibrary
 from loader.discrete_code_preparer import DiscreteCodePreparer
 from loader.map import Map
 from loader.preparer import Preparer
-from data.base_processor import BaseProcessor
-from utils.gpu import GPU
-from utils.metrics import MetricPool
+from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
+from model.base_model import BaseModel
+from utils.discovery.class_library import ClassLibrary
+from utils.gpu import get_device
 from utils.monitor import Monitor
 from utils.timer import Timer
 
@@ -23,51 +22,55 @@ from utils.timer import Timer
 class Tuner:
     PREPARER_CLASS = Preparer
 
-    def __init__(self, conf, processor, model):
-        self.conf = conf
-        self.model_name = model.get_name()
-        self.model = model
+    model: BaseModel
 
-        self.processor = processor # type: BaseProcessor
+    def __init__(self, config, processor, model=None):
+        self.config = config
+
+        if model:
+            self.model_name = model.get_name()
+            self.model = model
+        else:
+            self.model_name = self.config.model.upper()
+            self.model = self.load_model()
+
+        self.processor = processor
 
         self.log_dir = os.path.join('tuning', self.model_name)
         os.makedirs(self.log_dir, exist_ok=True)
 
         print(f'python {" ".join(sys.argv)}')
 
-        self.sign = f"{self.model_name}_on_{self.processor.dataset_name}"
+        self.sign = f"{self.model_name}_on_{self.processor.dataset_name}_{self.config.task}"
 
         self.model_path = os.path.join(self.log_dir, f'{self.model_name}_on_{self.processor.dataset_name}.pt')
         self.log_path = os.path.join(self.log_dir, f'{self.model_name}_on_{self.processor.dataset_name}.log')
 
-        self.model.prepare_model_finetuning(self.conf, inference_mode=False, tune_from=self.conf.tune_from)
-        self.model.post_init()
+        self.model.prepare_model_finetuning(self.config, inference_mode=False, tune_from=self.config.tune_from)
+        self.model.load()
 
         self.optimizer = torch.optim.Adam(
             params=filter(lambda p: p.requires_grad, self.model.model.parameters()),
-            lr=self.conf.lr
+            lr=self.config.lr
         )
 
-        self.monitor = Monitor(patience=self.conf.patience)
+        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.metrics)
+
+        self.monitor = Monitor(metrics_aggregator=self.metrics_aggregator, patience=self.config.patience)
         self.latency_timer = Timer(activate=False)
 
-    def get_device(self):
-        if self.conf.gpu is None:
-            return GPU.auto_choose(torch_format=True)
-        if self.conf.gpu == -1:
-            print('manually choosing CPU device')
-            return 'cpu'
-
-        print(f'manually choosing {self.conf.gpu}-th GPU')
-        return f'cuda:{self.conf.gpu}'
+    def get_model(self):
+        return self.model
 
     def load_model(self):
-        models = ClassLibrary.models(self.conf.task)
-        if self.model in models:
-            model = models[self.model]
-            print(f'loading {model.get_name()} model')
-            return model(device=self.get_device())
-        raise ValueError(f'unknown model: {self.model}')
+        models = ClassLibrary.models(self.config.task)
+
+        if self.model_name not in models:
+            raise ValueError(f'Unknown model: {self.model_name}')
+
+        model = models[self.model_name]
+
+        return model(device=get_device(self.config.gpu))
 
     @staticmethod
     def _get_steps(dataloader):
@@ -98,12 +101,13 @@ class Tuner:
                 label_list.extend(labels)
                 group_list.extend(groups)
 
-            pool = MetricPool.parse([self.conf.valid_metric])
-            results = pool.calculate(score_list, label_list, group_list)
+            results = self.metrics_aggregator(score_list, label_list, group_list)
+
             for k in results:
                 metric_name = k
                 metric_values.append(results[k])
-            print(f'(epoch {epoch}) validation on {self.processor.dataset_name} dataset with {metric_name}: {metric_values[-1]:.4f}')
+            print(
+                f'(epoch {epoch}) validation on {self.processor.dataset_name} dataset with {metric_name}: {metric_values[-1]:.4f}')
         self.model.model.train()
 
         metric_value = np.mean(metric_values).item()
@@ -112,31 +116,31 @@ class Tuner:
         action = self.monitor.push(metric_name, metric_value)
         if action is self.monitor.BEST:
             self.model.save(os.path.join(self.log_dir, f'{self.sign}.pt'))
-            print(f'saving best model to {self.log_dir}/{self.sign}.pt')
+            print(f"Saving best model to {os.path.join(self.log_dir, f'{self.sign}.pt')}")
         return action
 
     def get_eval_interval(self, total_train_steps):
-        if self.conf.eval_interval == 0:
-            self.conf.eval_interval = -1
+        if self.config.eval_interval == 0:
+            self.config.eval_interval = -1
 
-        if self.conf.eval_interval < 0:
-            return total_train_steps // -self.conf.eval_interval
+        if self.config.eval_interval < 0:
+            return total_train_steps // -self.config.eval_interval
 
-        return self.conf.eval_interval
+        return self.config.eval_interval
 
     def load_data(self):
 
         preparer = self.PREPARER_CLASS(
             processor=self.processor,
             model=self.model,
-            conf=self.conf
+            config=self.config
         )
         train_df = preparer.load_or_generate(mode='train')
 
         preparer = self.PREPARER_CLASS(
             processor=self.processor,
             model=self.model,
-            conf=self.conf
+            config=self.config
         )
         valid_dl = preparer.load_or_generate(mode='valid')
 
@@ -146,7 +150,7 @@ class Tuner:
         preparer = self.PREPARER_CLASS(
             processor=self.processor,
             model=self.model,
-            conf=self.conf
+            config=self.config
         )
         if not preparer.has_generated:
             self.processor.load()
@@ -157,7 +161,7 @@ class Tuner:
         if not issubclass(self.PREPARER_CLASS, DiscreteCodePreparer):
             return
 
-        if not self.conf.alignment:
+        if not self.config.alignment:
             return
 
         if hasattr(self, 'alignment_train_dl') and hasattr(self, 'alignment_total_train_steps'):
@@ -167,27 +171,27 @@ class Tuner:
             preparer = self.PREPARER_CLASS(
                 processor=self.processor,
                 model=self.model,
-                conf=self.conf
+                config=self.config
             )
             train_df = preparer.generate_item_alignment_data()
             train_ds = self.PREPARER_CLASS.DATASET_CLASS(train_df)
-            train_dl = DataLoader(train_ds, batch_size=self.conf.batch_size, shuffle=True)
+            train_dl = DataLoader(train_ds, batch_size=self.config.batch_size, shuffle=True)
             self.__setattr__('alignment_train_dl', train_dl)
-            total_train_steps = (len(train_ds) + self.conf.batch_size - 1) // self.conf.batch_size
+            total_train_steps = (len(train_ds) + self.config.batch_size - 1) // self.config.batch_size
             self.__setattr__('alignment_total_train_steps', total_train_steps)
 
         self.model.model.train()
         accumulate_step = 0
         self.optimizer.zero_grad()
         for index, batch in tqdm(enumerate(train_dl), total=total_train_steps):
-            if random.random() * self.conf.align_step >= 1:
+            if random.random() * self.config.align_step >= 1:
                 continue
 
             loss = self.model.finetune(batch, alignment=True)
             loss.backward()
 
             accumulate_step += 1
-            if accumulate_step == self.conf.acc_batch:
+            if accumulate_step == self.config.acc_batch:
                 self.optimizer.step()
                 self.optimizer.zero_grad()
                 accumulate_step = 0
@@ -200,17 +204,17 @@ class Tuner:
         train_df, valid_dl = self.load_data()
 
         train_ds = self.PREPARER_CLASS.DATASET_CLASS(train_df)
-        train_ds.align(batch_size=self.conf.batch_size, ascending=False)
-        train_dl = DataLoader(train_ds, batch_size=self.conf.batch_size, shuffle=False)
+        train_ds.align(batch_size=self.config.batch_size, ascending=False)
+        train_dl = DataLoader(train_ds, batch_size=self.config.batch_size, shuffle=False)
 
-        total_train_steps = (len(train_ds) + self.conf.batch_size - 1) // self.conf.batch_size
+        total_train_steps = (len(train_ds) + self.config.batch_size - 1) // self.config.batch_size
 
         self.list_tunable_parameters()
 
         eval_interval = self.get_eval_interval(total_train_steps)
 
         epoch = 0
-        while epoch + 1 <= self.conf.num_epochs:
+        while epoch + 1 <= self.config.num_epochs:
             self.model.model.train()
             self.alignment()
 
@@ -221,7 +225,7 @@ class Tuner:
                 loss.backward()
 
                 accumulate_step += 1
-                if accumulate_step == self.conf.acc_batch:
+                if accumulate_step == self.config.acc_batch:
                     self.optimizer.step()
                     self.optimizer.zero_grad()
                     accumulate_step = 0
@@ -248,7 +252,7 @@ class Tuner:
         print(f'Total {st.count} steps, avg ms {st.avgms():.4f}')
 
     def __call__(self):
-        if self.conf.latency:
+        if self.config.latency:
             self.latency()
             return
         self.finetune()

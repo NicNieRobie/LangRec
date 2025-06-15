@@ -18,7 +18,7 @@ class DenseCodePreparer(CodePreparer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.code_embeds = get_code_embeds(self.conf.code_path)
+        self.code_embeds = get_code_embeds(self.config.code_path)
         assert self.code_embeds is not None, f'code embeddings for {self.processor.dataset_name} not found'
 
         self.cod_vocab = Vocab(name=Map.COD_COL)
@@ -26,7 +26,7 @@ class DenseCodePreparer(CodePreparer):
             self.cod_vocab.load(self.store_dir)
 
     def tokenize_items(self, source='finetune', item_attrs=None):
-        item_set = self.processor.get_item_subset(source, slicer=self.conf.slicer)
+        item_set = self.processor.get_item_subset(source, slicer=self.config.history_window)
 
         item_dict = dict()
         for iid in item_set:
@@ -57,7 +57,7 @@ class DenseCodePreparer(CodePreparer):
     def load_or_generate(self, mode='train'):
         output = super().load_or_generate(mode)
 
-        cod_embeddings = torch.load(os.path.join(self.store_dir, 'cod_embeds.pth'))
-        self.model.set_cod_embeddings(nn.Embedding.from_pretrained(cod_embeddings, freeze=True))
+        code_embeddings = torch.load(os.path.join(self.store_dir, 'cod_embeds.pth'))
+        self.model.set_code_embeddings(nn.Embedding.from_pretrained(code_embeddings, freeze=True))
 
         return output

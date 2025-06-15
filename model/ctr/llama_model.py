@@ -43,17 +43,9 @@ class LlamaModel(BaseCTRModel, abc.ABC):
         )
 
 
-class Llama1Model(LlamaModel):
-    pass
-
-
-class Llama2Model(LlamaModel):
-    pass
-
-
-class Llama3Model(LlamaModel):
-    pass
-
-
 class Llama3_1Model(LlamaModel):
+    pass
+
+
+class LlamaTulu_3_1Model(LlamaModel):
     pass

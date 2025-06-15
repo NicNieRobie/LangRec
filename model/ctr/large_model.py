@@ -42,15 +42,6 @@ class Phi3_7BModel(LargeCTRModel):
         self.max_len = 2_000
 
 
-class Phi2_3BModel(LargeCTRModel):
-    NUM_LAYERS = 32
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self.max_len = 2_000
-
-
 class RecGPT7BModel(LargeCTRModel):
     NUM_LAYERS = 32
 

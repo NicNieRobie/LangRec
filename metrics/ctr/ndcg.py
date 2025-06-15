@@ -2,10 +2,10 @@ from typing import Union
 
 from sklearn.metrics import ndcg_score
 
-from metrics.at_k_metric import AtKMetric
+from metrics.ctr.ctr_at_k_metric import CTRAtKMetric
 
 
-class NDCG(AtKMetric):
+class NDCG(CTRAtKMetric):
     name = 'NDCG'
     group = True
     minimize = False

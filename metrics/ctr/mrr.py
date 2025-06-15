@@ -2,10 +2,10 @@ from typing import Union
 
 from sklearn.metrics import label_ranking_average_precision_score
 
-from metrics.base_metric import BaseMetric
+from metrics.ctr.base_ctr_metric import BaseCTRMetric
 
 
-class MRR(BaseMetric):
+class MRR(BaseCTRMetric):
     name = 'MRR'
     group = True
     minimize = False

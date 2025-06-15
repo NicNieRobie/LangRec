@@ -12,13 +12,13 @@ class DiscreteCodeEmbeddingLayer(DenseCodeEmbeddingLayer):
     def __init__(self, num_codes: int, dtype, **kwargs):
         super().__init__(**kwargs)
 
-        self.cod_embeddings = nn.Embedding(num_codes, self.embedding_dim, dtype=dtype)
-        self.cod_embeddings.weight.requires_grad = True
+        self.code_embeddings = nn.Embedding(num_codes, self.embedding_dim, dtype=dtype)
+        self.code_embeddings.weight.requires_grad = True
 
-        self.cod_classifier = nn.Linear(self.embedding_dim, num_codes, bias=False, dtype=dtype)
+        self.code_classifier = nn.Linear(self.embedding_dim, num_codes, bias=False, dtype=dtype)
 
     def classify(self, embeds):
-        return self.cod_classifier(embeds)
+        return self.code_classifier(embeds)
 
 
 class BaseDiscreteCodeModel(BaseDenseCodeModel):
@@ -28,7 +28,7 @@ class BaseDiscreteCodeModel(BaseDenseCodeModel):
         self.embedding_dimension = self.get_token_embeddings().weight.shape[1]
         self.num_codes = num_codes
 
-    def post_init(self):
+    def load(self):
         BaseModel.post_init(self)
 
         self.embedding_layer = DiscreteCodeEmbeddingLayer(
@@ -39,17 +39,19 @@ class BaseDiscreteCodeModel(BaseDenseCodeModel):
         )
         self.embedding_layer.to(self.device)
 
-    def set_cod_embeddings(self, cod_embeddings):
-        raise AttributeError('set_cod_embeddings is not supported in DiscreteCodeModel')
+        return self
+
+    def set_code_embeddings(self, code_embeddings):
+        raise AttributeError('set_code_embeddings is not supported in DiscreteCodeModel')
 
     def _get_scores(self, batch):
-        # print(batch)
-
         output = self.embedding_layer(batch)
+
         input_embeddings = output['input_embeddings']
         attention_mask = output['attention_mask']
-        cod_input = output['cod_input']  # [B, L]
-        cod_mask = output['cod_mask']  # [B, L]
+
+        code_input = output['code_input']  # [B, L]
+        code_mask = output['code_mask']  # [B, L]
 
         output = self.model(
             inputs_embeds=input_embeddings,
@@ -67,10 +69,10 @@ class BaseDiscreteCodeModel(BaseDenseCodeModel):
         logits = self.embedding_layer.classify(states)  # [B, L, C]
 
         # left shift code input and mask to construct the target
-        cod_input = torch.roll(cod_input, -1, 1)  # [B, L]
-        cod_mask = torch.roll(cod_mask, -1, 1)  # [B, L]
-        cod_labels = torch.ones(cod_input.shape, dtype=torch.long, device=self.device) * -100
-        cod_labels[cod_mask] = cod_input[cod_mask]
+        code_input = torch.roll(code_input, -1, 1)  # [B, L]
+        code_mask = torch.roll(code_mask, -1, 1)  # [B, L]
+        cod_labels = torch.ones(code_input.shape, dtype=torch.long, device=self.device) * -100
+        cod_labels[code_mask] = code_input[code_mask]
 
         # calculate the loss
         loss = nn.functional.cross_entropy(logits.view(-1, logits.size(-1)), cod_labels.view(-1))

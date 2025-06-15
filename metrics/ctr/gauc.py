@@ -2,12 +2,12 @@ from typing import Union
 
 from sklearn.metrics import roc_auc_score
 
-from metrics.base_metric import BaseMetric
+from metrics.ctr.base_ctr_metric import BaseCTRMetric
 
 
-class AUC(BaseMetric):
-    name = 'AUC'
-    group = False
+class GAUC(BaseCTRMetric):
+    name = 'GAUC'
+    group = True
     minimize = False
 
     def calculate(self, scores: list, labels: list) -> Union[int, float]:

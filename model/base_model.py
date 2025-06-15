@@ -124,11 +124,6 @@ class BaseModel:
         return torch.tensor([self.neg_token, self.pos_token])
 
     def find_lora_target_modules(self, tune_from: int, layer_prefix_pattern=r"layers?\.(\d+)"):
-        """
-        Automatically find modules to apply LoRA to (e.g., q_proj, v_proj, query, value),
-        limited to top layers >= tune_from.
-        """
-        import re
         target_modules = set()
 
         for name, module in self.model.named_modules():
@@ -197,16 +192,16 @@ class BaseModel:
         torch.save(state_dict, path)
 
     def load_pretrained(self, path):
-        print(f'loading finetuned model from {path}')
-        state_dict_ = dict()
-        assert self.parallel is False  # it can be true after loading
+        print(f"Loading finetuned model from {path}")
+
         state_dict = torch.load(path, map_location='cpu')
-        for k in state_dict:
-            if k.startswith('module.'):
-                state_dict_[k[7:]] = state_dict[k]
-            else:
-                state_dict_[k] = state_dict[k]
-        self.model.load_state_dict(state_dict_, strict=False)
+
+        state_dict_clean = {
+            key[7:] if key.startswith('module.') else key: value
+            for key, value in state_dict.items()
+        }
+
+        self.model.load_state_dict(state_dict_clean, strict=False)
 
     def recover(self, input_ids):
         return self.tokenizer.decode(input_ids)

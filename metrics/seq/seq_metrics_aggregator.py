@@ -1,29 +1,23 @@
-from typing import List
-from collections import OrderedDict
 from multiprocessing import Pool
+from typing import List
 
 import pandas as pd
 import torch
 
+from metrics.base_metrics_aggregator import BaseMetricsAggregator
+from metrics.seq.base_seq_metric import BaseSeqMetric
 from utils.discovery.class_library import ClassLibrary
-from metrics.base_metric import BaseMetric
 
 
-class MetricsAggregator:
-    def __init__(self, metrics: List[BaseMetric], metric_dict: dict):
-        self.metrics = metrics
-        self.metric_dict = metric_dict
+class SeqMetricsAggregator(BaseMetricsAggregator):
+    BASE_METRIC_CLS = BaseSeqMetric
 
-        self.vals = OrderedDict()
-        self.group = False
-
-        for metric in self.metrics:
-            self.vals[str(metric)] = []
-            self.group = self.group or metric.group
+    def __init__(self, metrics: List[BASE_METRIC_CLS], metric_dict: dict):
+        super().__init__(metrics, metric_dict)
 
     @classmethod
-    def build_from_config(cls, metrics_config):
-        metrics = ClassLibrary.metrics()
+    def build_from_config(cls, metrics_config, num_items, prod_mode):
+        metrics = ClassLibrary.seq_metrics()
 
         metric_dict = {m.name.upper(): m for name, m in metrics.class_dict.items()}
 
@@ -39,15 +33,15 @@ class MetricsAggregator:
             if m_str.upper() not in metric_dict:
                 raise ValueError(f'Metric {m_str} not found')
 
-            metrics.append(metric_dict[m_str.upper()](*arguments))
+            metrics.append(metric_dict[m_str.upper()](num_items=num_items, prod_mode=prod_mode, *arguments))
 
         return cls(metrics, metric_dict)
 
-    def evaluate(self, scores, labels, groups, group_worker=5):
+    def evaluate(self, ranks, groups, group_worker=5):
         if not self.metrics:
             return {}
 
-        df = pd.DataFrame(dict(groups=groups, scores=scores, labels=labels))
+        df = pd.DataFrame(dict(groups=groups, ranks=ranks))
 
         groups = None
         if self.group:
@@ -55,7 +49,7 @@ class MetricsAggregator:
 
         for metric in self.metrics:
             if not metric.group:
-                self.vals[str(metric)] = metric(scores=scores, labels=labels)
+                self.vals[str(metric)] = metric(scores=ranks)
                 continue
 
             tasks = []
@@ -64,10 +58,9 @@ class MetricsAggregator:
             for g in groups:
                 group = g[1]
 
-                g_labels = group.labels.tolist()
-                g_scores = group.scores.tolist()
+                g_ranks = group.ranks.tolist()
 
-                tasks.append(pool.apply_async(metric, args=(g_scores, g_labels)))
+                tasks.append(pool.apply_async(metric, args=(g_ranks,)))
 
             pool.close()
             pool.join()
@@ -82,7 +75,7 @@ class MetricsAggregator:
         return self.evaluate(*args, **kwargs)
 
     def is_minimize(self, metric: str):
-        if isinstance(metric, BaseMetric):
+        if isinstance(metric, BaseSeqMetric):
             return metric.minimize
 
         assert isinstance(metric, str)

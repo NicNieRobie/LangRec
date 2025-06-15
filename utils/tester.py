@@ -6,7 +6,8 @@ import torch
 from utils import bars
 from utils.exporter import Exporter
 
-from metrics.metrics_aggregator import MetricsAggregator
+from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
+from utils.metrics import get_metrics_aggregator
 
 
 class Tester:
@@ -201,7 +202,7 @@ class Tester:
         labels = source_set[self.processor.LABEL_COL].values
         groups = source_set[self.processor.USER_ID_COL].values
 
-        aggregator = MetricsAggregator.build_from_config(self.config.metrics)
+        aggregator = get_metrics_aggregator(self.task, metrics_config=self.config.metrics)
 
         results = aggregator(scores, labels, groups)
 
