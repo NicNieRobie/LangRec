@@ -14,6 +14,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
     MAX_INTERACTIONS_PER_USER: int = 20
     CAST_TO_STRING: bool
 
+
     BASE_STORE_DIR = 'data_store'
 
     def __init__(self, data_path='dataset'):
@@ -69,7 +70,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
     @staticmethod
     def _group_iterator(users, interactions):
         for u in users:
-            yield interactions.get_group(int(u))
+            yield interactions.get_group(u)
 
     @property
     def test_set_valid(self):

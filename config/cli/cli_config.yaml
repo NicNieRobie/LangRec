@@ -28,7 +28,9 @@ arguments:
     required: true
     type: str
     choices:
+      - GOODREADS
       - MOVIELENS
+      - STEAM
   task:
     help: Recommendation task to perform
     required: false
