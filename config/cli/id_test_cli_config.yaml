@@ -5,13 +5,16 @@ arguments:
     required: true
     type: str
     choices:
+      - GOODREADS
       - MOVIELENS
+      - STEAM
   task:
     help: Task that the SID encoding is performed for
     required: false
     type: str
     choices:
       - CTR
+      - DREC
       - SEQ
     default: SEQ
   gpu:

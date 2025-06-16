@@ -63,7 +63,7 @@ class BaseSeqProcessor(BaseProcessor, abc.ABC):
 
     def _iterator(self, user_order, users):
         for uid in user_order:
-            user = users[users[self.USER_ID_COL] == int(uid)]
+            user = users[users[self.USER_ID_COL] == uid]
             yield user.iloc[0]
 
     @staticmethod

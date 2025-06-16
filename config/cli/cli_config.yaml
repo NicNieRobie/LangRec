@@ -7,18 +7,15 @@ arguments:
     choices:
       - SENTENCEBERT
       - SENTENCET5
-      - QWEN2_7B
-      - QWEN2_1_5B
       - QWEN2_0_5B
-      - DEEPSEEKR1QWEN_7B
+      - QWEN2_1_5B
+      - QWEN2_7B
+      - QWEN2_5_7B
       - MISTRAL7B
       - PHI3_7B
-      - PHI2_3B
       - RECGPT7B
-      - LLAMA1
-      - LLAMA2
-      - LLAMA3
       - LLAMA3_1
+      - LLAMATULU_3_1
       - BERTBASE
       - BERTLARGE
       - P5BEAUTY_SMALL

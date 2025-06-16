@@ -108,6 +108,12 @@ class Tester:
                 response = f'{response:.4f}'
             elif isinstance(response, str):
                 response = response.strip(" \n")
+                try:
+                    # Take only the first line of the answer if the model has multiline output. This is done so that the
+                    # export of the model output is not all messed up.
+                    response = response.split('\n')[0]
+                finally:
+                    pass
             else:
                 pass
             bar.set_postfix_str(f'label: {label}, response: {response}')

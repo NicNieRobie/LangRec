@@ -7,6 +7,7 @@ beautifulsoup4==4.13.4
 certifi==2025.4.26
 charset-normalizer==3.4.2
 click==8.2.1
+codecarbon==3.0.2
 colorama==0.4.4
 colorlog==4.7.2
 datasphere==0.10.0

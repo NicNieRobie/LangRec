@@ -6,7 +6,7 @@ import sys
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from loader.discrete_code_preparer import DiscreteCodePreparer
 from loader.map import Map
@@ -75,12 +75,6 @@ class Tuner:
     @staticmethod
     def _get_steps(dataloader):
         return (len(dataloader.dataset) + dataloader.batch_size - 1) // dataloader.batch_size
-
-    def list_tunable_parameters(self):
-        print('tunable parameters:')
-        for name, param in self.model.model.named_parameters():
-            if param.requires_grad:
-                print(f'{name}: {param.size()}')
 
     def evaluate(self, valid_dl, epoch):
         total_valid_steps = self._get_steps(valid_dl)
@@ -208,8 +202,6 @@ class Tuner:
         train_dl = DataLoader(train_ds, batch_size=self.config.batch_size, shuffle=False)
 
         total_train_steps = (len(train_ds) + self.config.batch_size - 1) // self.config.batch_size
-
-        self.list_tunable_parameters()
 
         eval_interval = self.get_eval_interval(total_train_steps)
 

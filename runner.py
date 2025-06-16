@@ -1,8 +1,13 @@
+import os
+
+from codecarbon import OfflineEmissionsTracker
+
 from data.base_processor import BaseProcessor
 from model.seq.base_seq_model import BaseSeqModel
 from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
+from utils.drec_tuner import DrecTuner
 from utils.seq_tuner import SeqTuner
 from utils.tester import Tester
 from utils.tuner import Tuner
@@ -21,12 +26,16 @@ class Runner:
         self.model_name = config.model.upper()
         self.dataset = config.dataset.upper()
 
+        self.config.code_path = os.path.join("encoding", f"{self.dataset.lower()}_{self.task}_id.json")
+
         self.processor: BaseProcessor = self.load_processor()
         self.processor.load()
 
         if self.config.mode in ["finetune", "testtune"]:
             if config.task == 'seq':
                 self.tuner = SeqTuner(self.config, self.processor)
+            elif config.task == 'drec':
+                self.tuner = DrecTuner(self.config, self.processor)
             else:
                 self.tuner = Tuner(self.config, self.processor)
 
@@ -75,7 +84,17 @@ class Runner:
 
     def run(self):
         if self.config.mode in ["finetune", "testtune"]:
-            self.tuner()
+            with OfflineEmissionsTracker(
+                country_iso_code="RUS",
+                output_dir=os.path.join("emissions", f"{self.model_name}_{self.dataset}_{self.task}"),
+                output_file="finetune_emissions"
+            ) as tracker:
+                self.tuner()
 
         if self.config.mode in ["test", "testtune"]:
-            self.tester()
+            with OfflineEmissionsTracker(
+                country_iso_code="RUS",
+                output_dir=os.path.join("emissions", f"{self.model_name}_{self.dataset}_{self.task}"),
+                output_file="finetune_emissions"
+            ) as tracker:
+                self.tester()

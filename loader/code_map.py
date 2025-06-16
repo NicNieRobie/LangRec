@@ -12,3 +12,11 @@ class SeqCodeMap(CodeMap):
     LOB_COL = 'beam_length'
     BTH_COL = 'batch_id'
     LID_COL = 'local_id'
+
+
+class DrecCodeMap(CodeMap):
+    DCT_COL = 'candidates' # used to select the candidate items from code dictionary
+    SOB_COL = 'beam_start'
+    LOB_COL = 'beam_length'
+    BTH_COL = 'batch_id'
+    LID_COL = 'local_id'
