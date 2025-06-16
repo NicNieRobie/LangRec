@@ -6,6 +6,7 @@ arguments:
     type: str
     choices:
       - DeepFM
+      - SASRec
   dataset:
     help: Dataset name
     required: true
@@ -46,9 +47,18 @@ arguments:
     required: false
     type: int
     default: 10
-#  topk:
-#    help: List of K values for which to compute K-based metrics like Recall, NDCG, MRR.
-#    required: false
-#    type: list
-#    list_style: comma
-#    default: [5, 10, 20]
+  topk:
+    help: List of K values for which to compute K-based metrics like Recall, NDCG, MRR.
+    required: false
+    type: list
+    list_style: comma
+    default: [5, 10, 20]
+  task:
+    help: Recommendation task to perform
+    required: false
+    type: str
+    choices:
+      - ctr
+      - drec
+      - seq
+    default: drec

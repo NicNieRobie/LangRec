@@ -18,6 +18,7 @@ from utils.gpu import GPU
 
 from metrics.base_metrics_aggregator import BaseMetricsAggregator
 from recbole.data import data_preparation
+from recbole.model.sequential_recommender import SASRec
 import pandas as pd
 
 
@@ -25,13 +26,13 @@ class BaselineRunner:
     def __init__(self, config):
         self.config = config
 
-        self.task = 'ctr'
+        self.task = config.task
 
         self.model_name = config.model.upper()
         self.dataset = config.dataset.upper()
 
-        self.processor: BaseProcessor = self.load_processor()
-        self.processor.load()
+        # self.processor: BaseProcessor = self.load_processor()
+        # self.processor.load()
 
         self.dataset_file = None
 
@@ -125,17 +126,30 @@ class BaselineRunner:
 
     def get_dataset(self):
         """creates inter file"""
-        parquet_path = f'data_store/{self.dataset.lower()}/interactions.parquet'
 
-        df = pd.read_parquet(parquet_path)
+        if self.task == 'ctr':
+            parquet_path = f'data_store/{self.dataset.lower()}/interactions.parquet'
 
-        df.rename(columns={df.columns[0]: 'user_id:token', df.columns[1]: 'item_id:token', df.columns[2]: f'label:float'}, inplace=True)
+            df = pd.read_parquet(parquet_path)
+            df.rename(columns={df.columns[0]: 'user_id:token', df.columns[1]: 'item_id:token', df.columns[2]: f'label:float'}, inplace=True)
+            df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
 
-        dataset_dir = os.path.join('dataset_inter', self.dataset)
-        os.makedirs(dataset_dir, exist_ok=True)
+        if self.task == 'seq':
+            parquet_path = f'data_store/{self.dataset.lower()}/users.parquet'
 
-        inter_path = os.path.join(dataset_dir, f'{self.dataset}.inter')
-        df.to_csv(inter_path, sep='\t', index=False)
+            df = pd.read_parquet(parquet_path)
+
+            records = []
+            for _, row in df.iterrows():
+                uid = row['uid']
+                # items = parse_history(row['history'])
+                items = row['history']
+                for i, item_id in enumerate(items):
+                    records.append([uid, item_id, i + 1])
+
+            inter_df = pd.DataFrame(records, columns=['user_id:token', 'item_id:token', 'timestamp:float'])
+
+            inter_df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
 
     def get_model(self):
         """translates model name to model instance - to simulate loading a model, like it was with LLMs"""
@@ -143,10 +157,12 @@ class BaselineRunner:
             return BPR
         if self.model == 'DeepFM':
             return DeepFM
+        if self.model == 'SASRec':
+            return SASRec
         return ValueError('Unknown model')
 
     def get_data(self, parameter_dict):
-        # parameter_dict['topk'] = [int(k) for k in parameter_dict['topk']]
+        parameter_dict['topk'] = [int(k) for k in parameter_dict['topk']]
 
         sys.argv = [sys.argv[0]]  # clean cmd arguments so that config actually takes parameter_dict and not sys.argv
 
@@ -172,18 +188,26 @@ class BaselineRunner:
 
     def set_task(self):
         if self.task == 'ctr':
-            return ['user_id', 'item_id', 'label']
+            metrics = ['AUC']
+            mode = 'labeled'
+            return ['user_id', 'item_id', 'label'], metrics, mode
+        if self.task == 'seq':
+            metrics = ['Recall', 'MRR', 'NDCG']
+            mode = 'full'
+            return ['user_id','item_id', 'timestamp'], metrics, mode
 
     def run(self):
         self.get_dataset()
 
-        cols = self.set_task()
-        metrics = ['AUC']
+        cols, metrics, mode = self.set_task()
+
+        task = 'prediction'
+        if self.task == 'seq': task = 'ranking'
 
         parameter_dict = {
             'dataset': self.dataset,
-            'data_path': 'dataset_inter',
-            'inter_file': f'{self.dataset}.inter',
+            'data_path': f'dataset_inter/{self.task}',
+            'inter_file': self.dataset,
             'load_col': {'inter': cols},
             'model': self.config.model,
             'epochs': self.config.epochs,
@@ -191,15 +215,19 @@ class BaselineRunner:
             'eval_batch_size': 4096,
             'eval_args': {
                 'split': {'RS': [0.8, 0.1, 0.1]},
-                'order': 'RO',
-                'mode': 'labeled'
+                'order': 'TO' if self.task == 'seq' else 'RO',
+                'mode': mode
             },
             'metrics': metrics,
-            # 'topk': self.config.topk,
-            'task': 'prediction',
+            'topk': self.config.topk,
+            'task': task,
             'show_progress': True,
-            'valid_metric': 'AUC',
         }
+
+        if self.task == 'seq':
+            parameter_dict['train_neg_sample_args'] = None
+
+        print(parameter_dict)
 
         train_data, valid_data, test_data, config, dataset = self.get_data(parameter_dict)
 

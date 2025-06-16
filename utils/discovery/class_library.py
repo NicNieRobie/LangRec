@@ -148,10 +148,10 @@ class ClassLibrary:
 
         if task == "ctr":
             return ClassLibraryFactory.create_library(BaseCTRModel, path, 'model')
-        # elif task == "seq":
-        #     return ClassLibraryFactory.create_library(BaseSeqModel, path, 'seq_model')
-        # else:
-        #     return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
+        elif task == "seq":
+            return ClassLibraryFactory.create_library(BaseSeqModel, path, 'seq_model')
+        else:
+            return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
 
     @staticmethod
     def ctr_metrics():
