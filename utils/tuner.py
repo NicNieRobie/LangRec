@@ -6,13 +6,14 @@ import sys
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 from loader.discrete_code_preparer import DiscreteCodePreparer
 from loader.map import Map
 from loader.preparer import Preparer
 from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
 from model.base_model import BaseModel
+from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
 from utils.monitor import Monitor
@@ -54,7 +55,7 @@ class Tuner:
             lr=self.config.lr
         )
 
-        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.metrics)
+        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.valid_metric)
 
         self.monitor = Monitor(metrics_aggregator=self.metrics_aggregator, patience=self.config.patience)
         self.latency_timer = Timer(activate=False)
@@ -77,7 +78,7 @@ class Tuner:
         return (len(dataloader.dataset) + dataloader.batch_size - 1) // dataloader.batch_size
 
     def evaluate(self, valid_dl, epoch):
-        total_valid_steps = self._get_steps(valid_dl)
+        total_valid_steps = get_steps(valid_dl)
 
         self.model.model.eval()
         with torch.no_grad():

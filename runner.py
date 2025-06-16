@@ -8,8 +8,9 @@ from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
 from utils.drec_tuner import DrecTuner
+from utils.seq_tester import SeqTester
 from utils.seq_tuner import SeqTuner
-from utils.tester import Tester
+from utils.ctr_tester import CTRTester
 from utils.tuner import Tuner
 
 
@@ -32,19 +33,27 @@ class Runner:
         self.processor.load()
 
         if self.config.mode in ["finetune", "testtune"]:
-            if config.task == 'seq':
-                self.tuner = SeqTuner(self.config, self.processor)
-            elif config.task == 'drec':
-                self.tuner = DrecTuner(self.config, self.processor)
-            else:
-                self.tuner = Tuner(self.config, self.processor)
-
+            self.tuner = self._init_tuner()
             self.model = self.tuner.get_model()
         else:
             self.model = self.load_model()
 
         if self.config.mode in ["test", "testtune"]:
-            self.tester = Tester(self.config, self.processor, self.model)
+            self.tester = self._init_tester()
+
+    def _init_tuner(self):
+        if self.config.task == 'seq':
+            return SeqTuner(self.config, self.processor)
+        elif self.config.task == 'drec':
+            self.tuner = DrecTuner(self.config, self.processor)
+        else:
+            return Tuner(self.config, self.processor)
+
+    def _init_tester(self):
+        if self.config.task == 'seq':
+            return SeqTester(self.config, self.processor, self.model)
+        else:
+            return CTRTester(self.config, self.processor, self.model)
 
     def load_processor(self, data_path=None):
         processors = ClassLibrary.processors(self.task)
@@ -63,9 +72,10 @@ class Runner:
             raise ValueError(f'Unknown model: {self.model_name}')
 
         model = models[self.model_name]
+        device = self.get_device()
 
         if issubclass(model, BaseSeqModel):
-            _, code_list, num_codes = get_code_indices(self.config.code_path)
+            _, code_list, num_codes = get_code_indices(self.config, device)
 
             return model(device=self.get_device(), num_codes=num_codes, code_list=code_list).load()
         else:

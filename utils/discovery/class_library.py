@@ -131,7 +131,7 @@ class ClassLibrary:
         return ClassLibraryFactory.create_library(base_class, path, 'processor')
 
     @staticmethod
-    def models(task: str):
+    def models(task: str = "ctr"):
         assert task in ["ctr", "seq", "drec"]
         path = os.path.sep.join(['model', task])
 
