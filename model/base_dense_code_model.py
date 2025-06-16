@@ -42,8 +42,11 @@ class DenseCodeEmbeddingLayer(nn.Module):
         llm_mask = cast(torch.Tensor, vocab_ids == TV.LLM) & attention_mask
         code_mask = cast(torch.Tensor, vocab_ids == TV.COD) & attention_mask
 
-        llm_input = input_ids * llm_mask
-        code_input = input_ids * code_mask
+        pad_token_id = self.llm_embeddings.padding_idx
+        llm_input = input_ids.masked_fill(~llm_mask, pad_token_id)
+
+        pad_token_id = self.llm_embeddings.padding_idx
+        code_input = input_ids.masked_fill(~code_mask, pad_token_id)
 
         return dict(
             llm_mask=llm_mask,
@@ -118,6 +121,8 @@ class BaseDenseCodeModel(BaseModel):
             state_dict = torch.load(self.load_path, map_location='cpu')
             embedding_layer_state = state_dict['embedding_layer']
             self.embedding_layer.load_state_dict(embedding_layer_state)
+
+        return self
 
     def set_code_embeddings(self, code_embeddings):
         return self.embedding_layer.set_code_embeddings(code_embeddings)

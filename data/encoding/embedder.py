@@ -30,7 +30,7 @@ class Embedder:
         self.embedding_path = os.path.join(self.log_dir, f'{self.model_name}-embeds-{self.task}.npy')
 
     def _load_model(self):
-        models = ClassLibrary.models(self.task)
+        models = ClassLibrary.models()
 
         if self.model_name not in models:
             raise ValueError(f'Unknown model: {self.model_name}')

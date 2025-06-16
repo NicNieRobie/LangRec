@@ -5,12 +5,10 @@ import torch
 
 from utils import bars
 from utils.exporter import Exporter
-
-from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
 from utils.metrics import get_metrics_aggregator
 
 
-class Tester:
+class CTRTester:
     def __init__(self, config, processor, model):
         self.config = config
 

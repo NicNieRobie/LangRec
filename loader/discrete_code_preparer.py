@@ -10,6 +10,7 @@ from loader.code_map import CodeMap as Map
 from loader.token_vocab import TV
 from model.base_discrete_code_model import BaseDiscreteCodeModel
 from utils.code import get_code_indices
+from utils.gpu import get_device
 
 
 class DiscreteCodePreparer(CodePreparer):
@@ -19,7 +20,8 @@ class DiscreteCodePreparer(CodePreparer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        code_indices, _, _ = get_code_indices(self.config.code_path)
+
+        code_indices, _, _ = get_code_indices(self.config, get_device(self.config.gpu))
 
         self.processor.load()
         self.code_indices = dict()
@@ -30,6 +32,7 @@ class DiscreteCodePreparer(CodePreparer):
         for item_index in item_indices:
             current_indices = code_indices[str(item_index)]
             self.code_indices[item_index] = current_indices
+
             current_node = self.code_tree
             for index in current_indices:
                 if index not in current_node:
@@ -111,6 +114,7 @@ class DiscreteCodePreparer(CodePreparer):
             data[Map.UID_COL] = self.uid_vocab.append(data[Map.UID_COL])
             data[Map.IID_COL] = self.iid_vocab.append(data[Map.IID_COL])
 
-        print(f'{self.processor.dataset_name} dataset: additional item alignment data max_sequence_len: {max_sequence_len}')
+        print(
+            f'{self.processor.dataset_name} dataset: additional item alignment data max_sequence_len: {max_sequence_len}')
 
         return pd.DataFrame(datalist)

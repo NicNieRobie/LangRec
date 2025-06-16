@@ -49,7 +49,7 @@ class BaseSeqModel(BaseDiscreteCodeModel):
 
         output = self.model(
             inputs_embeds=input_embeddings,
-            attention_mask=attention_mask,
+            attention_mask=attention_mask.float(),
             output_hidden_states=True
         )
 
