@@ -13,6 +13,7 @@ from loader.map import Map
 from loader.preparer import Preparer
 from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
 from model.base_model import BaseModel
+from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
 from utils.monitor import Monitor
@@ -54,7 +55,7 @@ class Tuner:
             lr=self.config.lr
         )
 
-        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.metrics)
+        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.valid_metric)
 
         self.monitor = Monitor(metrics_aggregator=self.metrics_aggregator, patience=self.config.patience)
         self.latency_timer = Timer(activate=False)
@@ -72,18 +73,8 @@ class Tuner:
 
         return model(device=get_device(self.config.gpu))
 
-    @staticmethod
-    def _get_steps(dataloader):
-        return (len(dataloader.dataset) + dataloader.batch_size - 1) // dataloader.batch_size
-
-    def list_tunable_parameters(self):
-        print('tunable parameters:')
-        for name, param in self.model.model.named_parameters():
-            if param.requires_grad:
-                print(f'{name}: {param.size()}')
-
     def evaluate(self, valid_dl, epoch):
-        total_valid_steps = self._get_steps(valid_dl)
+        total_valid_steps = get_steps(valid_dl)
 
         self.model.model.eval()
         with torch.no_grad():
@@ -208,8 +199,6 @@ class Tuner:
         train_dl = DataLoader(train_ds, batch_size=self.config.batch_size, shuffle=False)
 
         total_train_steps = (len(train_ds) + self.config.batch_size - 1) // self.config.batch_size
-
-        self.list_tunable_parameters()
 
         eval_interval = self.get_eval_interval(total_train_steps)
 

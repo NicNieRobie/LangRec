@@ -22,7 +22,7 @@ class SIDEncoder(BaseEncoder):
     def __init__(self, config, device, output_dir=DEFAULT_OUTPUT_DIR, ckpt_dir=DEFAULT_CKPT_DIR):
         super().__init__(config, device, output_dir)
 
-        self.model_name = config.model
+        self.model_name = config.enc_model
 
         embedder = Embedder(self.dataset, self.model_name, self.task, config.rqvae_attrs, device)
         emb_path = embedder.run()
@@ -54,6 +54,10 @@ class SIDEncoder(BaseEncoder):
         )
 
     def encode(self) -> dict:
+        if os.path.exists(self.code_output_path):
+            print("Codes already exist, skipping encoding...")
+            return json.load(open(self.code_output_path))
+
         best_collision_ckpt = os.path.join(self.rqvae_ckpt_path, 'best_collision_model.pth')
 
         if not os.path.exists(best_collision_ckpt):

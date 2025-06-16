@@ -29,7 +29,7 @@ class BaseDiscreteCodeModel(BaseDenseCodeModel):
         self.num_codes = num_codes
 
     def load(self):
-        BaseModel.post_init(self)
+        BaseModel.load(self)
 
         self.embedding_layer = DiscreteCodeEmbeddingLayer(
             llm_embeddings=self.get_token_embeddings(),
