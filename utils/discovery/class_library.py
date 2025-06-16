@@ -142,6 +142,18 @@ class ClassLibrary:
             return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
 
     @staticmethod
+    def baseline_models(task: str):
+        assert task in ["ctr", "seq", "drec"]
+        path = os.path.sep.join(['model', task])
+
+        if task == "ctr":
+            return ClassLibraryFactory.create_library(BaseCTRModel, path, 'model')
+        # elif task == "seq":
+        #     return ClassLibraryFactory.create_library(BaseSeqModel, path, 'seq_model')
+        # else:
+        #     return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
+
+    @staticmethod
     def ctr_metrics():
         path = os.path.sep.join(['metrics', 'ctr'])
         return ClassLibraryFactory.create_library(BaseCTRMetric, path)
