@@ -1,12 +1,12 @@
 from data.base_processor import BaseProcessor
 from model.seq.base_seq_model import BaseSeqModel
+from tester.ctr_tester import CTRTester
+from tester.seq_tester import SeqTester
+from tuner.ctr_tuner import CTRTuner
+from tuner.seq_tuner import SeqTuner
 from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
-from utils.seq_tester import SeqTester
-from utils.seq_tuner import SeqTuner
-from utils.ctr_tester import CTRTester
-from utils.tuner import Tuner
 
 
 class Runner:
@@ -38,7 +38,7 @@ class Runner:
         if self.config.task == 'seq':
             return SeqTuner(self.config, self.processor)
         else:
-            return Tuner(self.config, self.processor)
+            return CTRTuner(self.config, self.processor)
 
     def _init_tester(self):
         if self.config.task == 'seq':
@@ -68,9 +68,9 @@ class Runner:
         if issubclass(model, BaseSeqModel):
             _, code_list, num_codes = get_code_indices(self.config, device)
 
-            return model(device=self.get_device(), num_codes=num_codes, code_list=code_list).load()
+            return model(device=device, num_codes=num_codes, code_list=code_list).load()
         else:
-            return model(device=self.get_device()).load()
+            return model(device=device).load()
 
     def get_device(self):
         if self.config.gpu is None:

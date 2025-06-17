@@ -2,8 +2,13 @@ import os.path
 
 import numpy as np
 import torch
+from tqdm import tqdm
 
+from loader.discrete_code_preparer import DiscreteCodePreparer
+from loader.map import Map
+from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
 from utils import bars
+from utils.dataloader import get_steps
 from utils.exporter import Exporter
 from utils.metrics import get_metrics_aggregator
 
@@ -45,6 +50,12 @@ class CTRTester:
 
         if self.config.rerun:
             self.exporter.reset()
+
+        if self.use_encoding():
+            self.num_codes = model.num_codes
+
+    def use_encoding(self):
+        return self.config.code_path is not None or self.config.code_type is not None
 
     @staticmethod
     def _truncate_inputs(history, candidate, top_k_ratio=0.1):
@@ -192,6 +203,39 @@ class CTRTester:
 
             self.exporter.write(score)
 
+    def test_encoding(self):
+        preparer = DiscreteCodePreparer(
+            processor=self.processor,
+            model=self.model,
+            conf=self.config
+        )
+        if not preparer.has_generated:
+            self.processor.load()
+
+        test_dl = preparer.load_or_generate(mode='test')
+
+        total_valid_steps = get_steps(test_dl)
+
+        self.model.model.eval()
+        with torch.no_grad():
+            score_list, label_list, group_list = [], [], []
+            for index, batch in tqdm(enumerate(test_dl), total=total_valid_steps[0], desc="Testing"):
+                # self.latency_timer.run('test')
+                scores = self.model.evaluate(batch)
+                # self.latency_timer.run('test')
+                labels = batch[Map.LBL_COL].tolist()
+                groups = batch[Map.UID_COL].tolist()
+
+                score_list.extend(scores)
+                label_list.extend(labels)
+                group_list.extend(groups)
+
+            aggregator = CTRMetricsAggregator.build_from_config(self.config.metrics)
+            results = aggregator(score_list, label_list, group_list)
+
+            for metric, value in results.items():
+                print(f'{metric}: {value:.4f}')
+
     def evaluate(self):
         scores = self.exporter.read()
 
@@ -213,6 +257,9 @@ class CTRTester:
         if self.config.latency:
             # TODO
             return
+
+        if self.use_encoding():
+            self.test_encoding()
 
         if self.use_prompt:
             self.test_prompt()

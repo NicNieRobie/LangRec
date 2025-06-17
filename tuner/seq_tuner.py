@@ -13,7 +13,7 @@ from utils.code import get_code_indices
 from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
-from utils.tuner import Tuner
+from tuner.tuner import Tuner
 
 
 class SeqTuner(Tuner):
@@ -25,7 +25,6 @@ class SeqTuner(Tuner):
     def build_metrics_aggregator(self):
         return SeqMetricsAggregator.build_from_config(
             [self.config.valid_metric],
-            num_items=self.num_codes,
             prod_mode=self.config.search_mode == 'prod'
         )
 

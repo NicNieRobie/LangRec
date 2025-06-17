@@ -9,7 +9,7 @@ from loader.dataset import Dataset
 from loader.map import Map
 from model.base_model import BaseModel
 from data.base_processor import BaseProcessor
-from utils.obj_idx_vocabulary import ObjIdxVocabulary
+from tuner.tune_utils.obj_idx_vocabulary import ObjIdxVocabulary
 
 
 class Preparer:
