@@ -59,7 +59,6 @@ def generate_job_config(args):
         DATASET_NAMES[args.dataset],
         args.model,
         MODE_NAMES[args.mode],
-        args.task,
         args_hash
     ]).upper()
 
