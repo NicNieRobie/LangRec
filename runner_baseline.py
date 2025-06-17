@@ -124,32 +124,34 @@ class BaselineRunner:
 
         self.exporter.save_metrics(results)
 
-    def get_dataset(self):
-        """creates inter file"""
+    # def get_dataset(self):
+    #     """creates inter file"""
+    #
+    #     if self.task == 'ctr':
+    #         parquet_path = f'data_store/{self.dataset.lower()}/interactions.parquet'
+    #
+    #         df = pd.read_parquet(parquet_path)
+    #         df.rename(columns={df.columns[0]: 'user_id:token', df.columns[1]: 'item_id:token', df.columns[2]: f'label:float'}, inplace=True)
+    #         df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
+    #
+    #     if self.task == 'seq' or self.task == 'drec':
+    #         if os.path.exists(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter'):
+    #
 
-        if self.task == 'ctr':
-            parquet_path = f'data_store/{self.dataset.lower()}/interactions.parquet'
-
-            df = pd.read_parquet(parquet_path)
-            df.rename(columns={df.columns[0]: 'user_id:token', df.columns[1]: 'item_id:token', df.columns[2]: f'label:float'}, inplace=True)
-            df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
-
-        if self.task == 'seq':
-            parquet_path = f'data_store/{self.dataset.lower()}/users.parquet'
-
-            df = pd.read_parquet(parquet_path)
-
-            records = []
-            for _, row in df.iterrows():
-                uid = row['uid']
-                # items = parse_history(row['history'])
-                items = row['history']
-                for i, item_id in enumerate(items):
-                    records.append([uid, item_id, i + 1])
-
-            inter_df = pd.DataFrame(records, columns=['user_id:token', 'item_id:token', 'timestamp:float'])
-
-            inter_df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
+        # parquet_path = f'data_store/{self.dataset.lower()}/users.parquet'
+            #
+            # df = pd.read_parquet(parquet_path)
+            #
+            # records = []
+            # for _, row in df.iterrows():
+            #     uid = row['uid']
+            #     items = row['history']
+            #     for i, item_id in enumerate(items):
+            #         records.append([uid, item_id, i + 1])
+            #
+            # inter_df = pd.DataFrame(records, columns=['user_id:token', 'item_id:token', 'timestamp:float'])
+            #
+            # inter_df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
 
     def get_model(self):
         """translates model name to model instance - to simulate loading a model, like it was with LLMs"""
@@ -195,14 +197,18 @@ class BaselineRunner:
             metrics = ['Recall', 'MRR', 'NDCG']
             mode = 'full'
             return ['user_id','item_id', 'timestamp'], metrics, mode
+        if self.task == 'drec':
+            metrics = ['Recall', 'MRR', 'NDCG']
+            mode = 'full'
+            return ['user_id','candidates', 'label'], metrics, mode
 
     def run(self):
-        self.get_dataset()
+        # self.get_dataset()
 
         cols, metrics, mode = self.set_task()
 
         task = 'prediction'
-        if self.task == 'seq': task = 'ranking'
+        if self.task == 'seq' or self.task == 'drec': task = 'ranking'
 
         parameter_dict = {
             'dataset': self.dataset,
@@ -215,7 +221,7 @@ class BaselineRunner:
             'eval_batch_size': 4096,
             'eval_args': {
                 'split': {'RS': [0.8, 0.1, 0.1]},
-                'order': 'TO' if self.task == 'seq' else 'RO',
+                'order': 'TO' if self.task == 'seq' or self.task == 'drec' else 'RO',
                 'mode': mode
             },
             'metrics': metrics,
@@ -227,7 +233,8 @@ class BaselineRunner:
         if self.task == 'seq':
             parameter_dict['train_neg_sample_args'] = None
 
-        print(parameter_dict)
+        # if self.task == 'drec':
+        #     parameter_dict['dataset_class'] = 'CandidateRankingDataset'
 
         train_data, valid_data, test_data, config, dataset = self.get_data(parameter_dict)
 
