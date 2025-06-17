@@ -12,6 +12,8 @@ arguments:
       - DCNV2
       - AutoInt
       - LightGDCN
+      - BPR
+      - ItemKNN
   dataset:
     help: Dataset name
     required: true
@@ -20,6 +22,15 @@ arguments:
       - GOODREADS
       - MOVIELENS
       - STEAM
+  representation:
+    help: Representation of dataset
+    required: false
+    type: str
+    choices:
+      - id
+      - text
+      - sem_id
+    default: id
   history_window:
     help: The length of the user behavior history window. For a positive value N, the first N items are taken from history. For a negative value N, the last N items are taken.
     required: false

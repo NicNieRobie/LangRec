@@ -2,48 +2,37 @@ import os.path
 import sys
 
 import numpy as np
-import torch
 from recbole.model.context_aware_recommender import DeepFM
-from recbole.quick_start import run_recbole
-from setuptools.command.setopt import config_file
 from recbole.config import Config
 from recbole.data import create_dataset
 from recbole.model.general_recommender import BPR
 from recbole.trainer import Trainer
-from data.base_processor import BaseProcessor
-from utils import bars
 from utils.discovery.class_library import ClassLibrary
 from utils.exporter import Exporter
-from utils.gpu import GPU
 from recbole.model.general_recommender.lightgcn import LightGCN
-
-from metrics.base_metrics_aggregator import BaseMetricsAggregator
 from recbole.data import data_preparation
 from recbole.model.sequential_recommender import SASRec
-from recbole.model.layers import MLPLayers
 from recbole.model.context_aware_recommender.autoint import AutoInt
 from recbole.model.context_aware_recommender.dcn import DCN
 from recbole.model.context_aware_recommender.dcnv2 import DCNV2
 from recbole.model.context_aware_recommender.pnn import PNN
-import pandas as pd
+from recbole.model.general_recommender.itemknn import ItemKNN
 
 
 class BaselineRunner:
     def __init__(self, config):
         self.config = config
 
+        self.representation = config.representation
+
         self.task = config.task
 
         self.model_name = config.model.upper()
         self.dataset = config.dataset.upper()
 
-        # self.processor: BaseProcessor = self.load_processor()
-        # self.processor.load()
-
         self.dataset_file = None
 
         self.model = config.model
-        #self.load_model()
 
         self.sign = ''
 
@@ -113,23 +102,6 @@ class BaselineRunner:
 
         return None
 
-    def evaluate(self):
-        scores = self.exporter.read()
-
-        source_set = self.processor.get_source_set(self.config.source)
-
-        labels = source_set[self.processor.LABEL_COL].values
-        groups = source_set[self.processor.USER_ID_COL].values
-
-        aggregator = BaseMetricsAggregator.build_from_config(self.config.metrics)
-
-        results = aggregator(scores, labels, groups)
-
-        for metric, val in results.items():
-            print(f'{metric}: {val:.4f}')
-
-        self.exporter.save_metrics(results)
-
     def get_model(self):
         """translates model name to model instance - to simulate loading a model, like it was with LLMs"""
         if self.model == 'BPR':
@@ -148,6 +120,10 @@ class BaselineRunner:
             return LightGCN
         if self.model == 'PNN':
             return PNN
+        if self.model == 'BPR':
+            return BPR
+        if self.model == 'ItemKNN':
+            return ItemKNN
 
         return ValueError('Unknown model')
 
@@ -188,7 +164,7 @@ class BaselineRunner:
         if self.task == 'drec':
             metrics = ['Recall', 'MRR', 'NDCG']
             mode = 'full'
-            return ['user_id','candidates', 'label'], metrics, mode
+            return ['user_id','item_id'], metrics, mode
 
     def run(self):
         cols, metrics, mode = self.set_task()
@@ -198,7 +174,7 @@ class BaselineRunner:
 
         parameter_dict = {
             'dataset': self.dataset,
-            'data_path': f'dataset_inter/{self.task}',
+            'data_path': f'dataset_inter/{self.representation}/{self.task}',
             'inter_file': self.dataset,
             'load_col': {'inter': cols},
             'model': self.config.model,
@@ -216,11 +192,8 @@ class BaselineRunner:
             'show_progress': True,
         }
 
-        if self.task == 'seq':
+        if self.task == 'seq' or self.task == 'drec':
             parameter_dict['train_neg_sample_args'] = None
-
-        # if self.task == 'drec':
-        #     parameter_dict['dataset_class'] = 'CandidateRankingDataset'
 
         train_data, valid_data, test_data, config, dataset = self.get_data(parameter_dict)
 
