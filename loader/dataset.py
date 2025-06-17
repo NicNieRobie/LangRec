@@ -17,9 +17,9 @@ class Dataset(BaseDataset):
     def align(self, batch_size, ascending=False):
         self.datalist = self.datalist.sort_values(Map.LEN_COL, ascending=ascending).reset_index(drop=True)
 
-        print(f'combining dataset by step-wise length alignment')
         num_batches = (len(self.datalist) + batch_size - 1) // batch_size
-        for i in tqdm(range(num_batches), total=num_batches):
+
+        for i in tqdm(range(num_batches), total=num_batches, desc="Performing length alignment"):
             start_index = i * batch_size
             end_index = min(start_index + batch_size, len(self.datalist))
             batch = self.datalist.loc[start_index:end_index - 1]

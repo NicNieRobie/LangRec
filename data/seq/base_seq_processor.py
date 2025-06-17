@@ -70,7 +70,7 @@ class BaseSeqProcessor(BaseProcessor, abc.ABC):
     def split(iterator, count):
         users = []
 
-        for user in tqdm(iterator, total=count):
+        for user in tqdm(iterator, total=count, desc="Generating split"):
             users.append(user)
             if len(users) >= count:
                 break

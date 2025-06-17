@@ -20,6 +20,7 @@ arguments:
       - BERTLARGE
       - P5BEAUTY_SMALL
       - P5BEAUTY_BASE
+      - BERTBASE_DC
   dataset:
     help: Dataset name
     required: true
@@ -30,13 +31,12 @@ arguments:
       - STEAM
   task:
     help: Recommendation task to perform
-    required: false
+    required: true
     type: str
     choices:
       - ctr
       - drec
       - seq
-    default: drec
   metrics:
     help: Comma-separated list of metrics to use for evaluation.
     required: false
@@ -131,10 +131,10 @@ arguments:
     type: float
     default: 0.1
   valid_metric:
-    help: Metric used to evaluate models on validation step
+    help: Metric to use for validation.
     required: false
     type: str
-    default: 'GAUC'
+    default: GAUC
   lr:
     help: Learning rate
     required: false

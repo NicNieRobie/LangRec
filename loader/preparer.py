@@ -9,7 +9,7 @@ from loader.dataset import Dataset
 from loader.map import Map
 from model.base_model import BaseModel
 from data.base_processor import BaseProcessor
-from utils.obj_idx_vocabulary import ObjIdxVocabulary
+from tuner.tune_utils.obj_idx_vocabulary import ObjIdxVocabulary
 
 
 class Preparer:
@@ -40,7 +40,7 @@ class Preparer:
         )
 
     def get_primary_signature(self):
-        return f'{self.processor.dataset_name}_{self.model.get_name()}'
+        return f'{self.processor.dataset_name}_{self.model.get_name()}_{self.config.task}_{self.config.code_type}'
 
     def get_secondary_signature(self):
         return f'{self.config.valid_ratio}'
@@ -65,8 +65,9 @@ class Preparer:
         max_sequence_len = 0
         print(f'preprocessing on the {self.processor.dataset_name} dataset')
         for index, data in tqdm(
-                enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
-                total=len(self.processor.get_source_set(source=source))
+            enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
+            total=len(self.processor.get_source_set(source=source)),
+            desc=f"Preprocessing the {self.processor.dataset_name} dataset"
         ):
             uid, iid, history, label = data
 
