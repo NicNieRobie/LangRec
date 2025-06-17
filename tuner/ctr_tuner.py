@@ -18,6 +18,7 @@ from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
 from utils.timer import Timer
+from loguru import logger
 
 
 class CTRTuner(Tuner):
@@ -86,7 +87,7 @@ class CTRTuner(Tuner):
         self.model.model.eval()
         with torch.no_grad():
             metric_name, metric_values = None, []
-            print(f'[Epoch {epoch}] Validating on dataset {self.processor.dataset_name}')
+            logger.debug(f'[Epoch {epoch}] Validating on dataset {self.processor.dataset_name}')
             score_list, label_list, group_list = [], [], []
             for index, batch in enumerate(tqdm(valid_dl, total=total_valid_steps, desc="Validating")):
                 self.latency_timer.run('test')
@@ -104,17 +105,15 @@ class CTRTuner(Tuner):
             for k in results:
                 metric_name = k
                 metric_values.append(results[k])
-            print(
-                f'(epoch {epoch}) validation on {self.processor.dataset_name} dataset with {metric_name}: {metric_values[-1]:.4f}')
         self.model.model.train()
 
         metric_value = np.mean(metric_values).item()
-        print(f'(epoch {epoch}) validation on all datasets with {metric_name}: {metric_value:.4f}')
+        logger.debug(f'[Epoch {epoch}] {metric_name} on dataset {self.processor.dataset_name}: {metric_value:.4f}')
 
         action = self.monitor.push(metric_name, metric_value)
         if action is self.monitor.BEST:
             self.model.save(os.path.join(self.log_dir, f'{self.sign}.pt'))
-            print(f"Saving best model to {os.path.join(self.log_dir, f'{self.sign}.pt')}")
+            logger.info(f"Saving best model to {os.path.join(self.log_dir, f'{self.sign}.pt')}")
         return action
 
     def load_data(self):

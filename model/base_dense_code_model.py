@@ -48,11 +48,6 @@ class DenseCodeEmbeddingLayer(nn.Module):
         pad_token_id = self.llm_embeddings.padding_idx
         code_input = input_ids.masked_fill(~code_mask, pad_token_id)
 
-        # print('code_input max:', code_input.max())
-        # print('num_embeddings', self.code_embeddings.num_embeddings)
-        #
-        # assert code_input.max() < self.code_embeddings.num_embeddings, "Code input index out of range"
-
         return dict(
             llm_mask=llm_mask,
             code_mask=code_mask,

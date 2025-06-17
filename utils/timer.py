@@ -1,5 +1,7 @@
 import time
 
+from loguru import logger
+
 
 class StatusTimer:
     def __init__(self):
@@ -57,6 +59,6 @@ class Timer:
 
     def summarize(self):
         for status in self.status_dict:
-            print(f'status: {status}, '
-                f'avg time: {self.status_dict[status].avgms():.4f}ms, '
-                f'total time: {self.status_dict[status].total_time:.4f}s')
+            logger.info(f'status: {status}, '
+                        f'avg time: {self.status_dict[status].avgms():.4f}ms, '
+                        f'total time: {self.status_dict[status].total_time:.4f}s')

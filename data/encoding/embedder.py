@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from loguru import logger
 from tqdm import tqdm
 
 from utils.discovery.class_library import ClassLibrary
@@ -41,7 +42,7 @@ class Embedder:
 
     def _embed(self):
         if os.path.exists(self.embedding_path):
-            print('Embeddings file exists, skipping embedding...')
+            logger.debug('Embeddings file exists, skipping embedding...')
             return self.embedding_path
 
         item_embeddings = []
@@ -55,7 +56,7 @@ class Embedder:
 
         np.save(self.embedding_path, item_embeddings)
 
-        print(f'Embeddings saved to {self.embedding_path}')
+        logger.debug(f'Embeddings saved to {self.embedding_path}')
 
         return self.embedding_path
 

@@ -2,11 +2,12 @@ import hashlib
 import os
 
 import pandas as pd
+from loguru import logger
 from tqdm import tqdm
 
-from loader.code_preparer import CodePreparer
 from loader.code_dataset import CodeDataset
 from loader.code_map import CodeMap as Map
+from loader.code_preparer import CodePreparer
 from loader.token_vocab import TV
 from model.base_discrete_code_model import BaseDiscreteCodeModel
 from utils.code import get_code_indices
@@ -47,7 +48,7 @@ class DiscreteCodePreparer(CodePreparer):
         self.test_datapath = os.path.join(self.store_dir, 'test.parquet')
         self.test_has_generated = os.path.exists(self.test_datapath)
 
-        print(f'prepared data will be stored in {self.store_dir}')
+        logger.debug(f'Prepared data will be stored in {self.store_dir}')
 
     def get_secondary_meta(self):
         return dict(
@@ -70,7 +71,7 @@ class DiscreteCodePreparer(CodePreparer):
     def load_or_generate(self, mode='train'):
         if mode == 'test':
             if self.test_has_generated:
-                print(f'loading prepared {mode} data on {self.processor.dataset_name} dataset')
+                logger.debug(f'Loading prepared {mode} data on {self.processor.dataset_name} dataset')
                 return self._pack_datalist(pd.read_parquet(self.test_datapath))
             else:
                 test_datalist = self._process(source='test')
@@ -114,7 +115,7 @@ class DiscreteCodePreparer(CodePreparer):
             data[Map.UID_COL] = self.uid_vocab.append(data[Map.UID_COL])
             data[Map.IID_COL] = self.iid_vocab.append(data[Map.IID_COL])
 
-        print(
-            f'{self.processor.dataset_name} dataset: additional item alignment data max_sequence_len: {max_sequence_len}')
+        logger.debug(
+            f'{self.processor.dataset_name} dataset preprocessed, additional item alignment data max_sequence_len: {max_sequence_len}')
 
         return pd.DataFrame(datalist)
