@@ -1,3 +1,4 @@
+from loguru import logger
 from tqdm import tqdm
 
 from loader.code_dataset import CodeDataset
@@ -61,6 +62,6 @@ class SeqPreparer(DiscreteCodePreparer):
             data[SeqCodeMap.VOC_COL] = data[SeqCodeMap.VOC_COL] + [0] * (max_seq_len - data[SeqCodeMap.LEN_COL])
             data[SeqCodeMap.UID_COL] = self.uid_vocab.append(data[SeqCodeMap.UID_COL])
 
-        print(f"{self.processor.dataset_name} dataset preprocessed, max seq length: {max_seq_len}")
+        logger.debug(f"{self.processor.dataset_name} dataset preprocessed, max seq length: {max_seq_len}")
 
         return datalist

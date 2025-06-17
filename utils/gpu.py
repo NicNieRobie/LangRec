@@ -1,6 +1,7 @@
 import os
 
 import torch.cuda
+from loguru import logger
 
 
 def get_device(gpu_num):
@@ -8,10 +9,10 @@ def get_device(gpu_num):
         return GPU.auto_choose(torch_format=True)
 
     if gpu_num == -1:
-        print('Choosing CPU device')
+        logger.info('Choosing CPU device')
         return 'cpu'
 
-    print(f'Choosing {gpu_num}-th GPU')
+    logger.info(f'Choosing {gpu_num}-th GPU')
     return f'CUDA: {gpu_num}'
 
 
@@ -37,15 +38,17 @@ class GPU:
     @classmethod
     def auto_choose(cls, torch_format=False):
         if not torch.cuda.is_available():
-            print('system does not support CUDA')
+            logger.info('System does not support CUDA')
             if torch_format:
-                print('auto switching to CPU device')
+                logger.info('Auto switching to CPU device')
                 return "cpu"
             return -1
 
         gpus = cls.get_gpus()
         chosen_gpu = sorted(gpus, key=lambda d: d['memory.free'], reverse=True)[0]
-        print(f'choosing {chosen_gpu["index"]}-th GPU with {chosen_gpu["memory.free"]} / {chosen_gpu["memory.total"]} MB')
+
+        logger.info(f'Choosing {chosen_gpu["index"]}-th GPU with {chosen_gpu["memory.free"]} / {chosen_gpu["memory.total"]} MB')
+
         if torch_format:
             return "cuda:" + str(chosen_gpu['index'])
         return int(chosen_gpu['index'])
