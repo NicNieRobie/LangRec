@@ -12,16 +12,14 @@ class GoodReadsProcessor(TimedInteractionProcessor):
     USER_ID_COL = 'uid'
     HISTORY_COL = 'history'
     LABEL_COL = 'click'
-    DATE_COL = 'timestamp'
-
-    RATING_COL = 'rating'
+    DATE_COL = 'date'
 
     POS_SAMPLE_COUNT = 2
 
-    NUM_TEST = 5_000
-    NUM_FINETUNE = 40_000
+    NUM_TEST = 20_000
+    NUM_FINETUNE = 100_000
 
-    CAST_TO_STRING = False
+    CAST_TO_STRING = True
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
