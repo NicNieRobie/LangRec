@@ -7,6 +7,11 @@ arguments:
     choices:
       - DeepFM
       - SASRec
+      - PNN
+      - DCN
+      - DCNV2
+      - AutoInt
+      - LightGDCN
   dataset:
     help: Dataset name
     required: true

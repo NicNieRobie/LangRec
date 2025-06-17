@@ -15,10 +15,16 @@ from utils import bars
 from utils.discovery.class_library import ClassLibrary
 from utils.exporter import Exporter
 from utils.gpu import GPU
+from recbole.model.general_recommender.lightgcn import LightGCN
 
 from metrics.base_metrics_aggregator import BaseMetricsAggregator
 from recbole.data import data_preparation
 from recbole.model.sequential_recommender import SASRec
+from recbole.model.layers import MLPLayers
+from recbole.model.context_aware_recommender.autoint import AutoInt
+from recbole.model.context_aware_recommender.dcn import DCN
+from recbole.model.context_aware_recommender.dcnv2 import DCNV2
+from recbole.model.context_aware_recommender.pnn import PNN
 import pandas as pd
 
 
@@ -124,35 +130,6 @@ class BaselineRunner:
 
         self.exporter.save_metrics(results)
 
-    # def get_dataset(self):
-    #     """creates inter file"""
-    #
-    #     if self.task == 'ctr':
-    #         parquet_path = f'data_store/{self.dataset.lower()}/interactions.parquet'
-    #
-    #         df = pd.read_parquet(parquet_path)
-    #         df.rename(columns={df.columns[0]: 'user_id:token', df.columns[1]: 'item_id:token', df.columns[2]: f'label:float'}, inplace=True)
-    #         df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
-    #
-    #     if self.task == 'seq' or self.task == 'drec':
-    #         if os.path.exists(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter'):
-    #
-
-        # parquet_path = f'data_store/{self.dataset.lower()}/users.parquet'
-            #
-            # df = pd.read_parquet(parquet_path)
-            #
-            # records = []
-            # for _, row in df.iterrows():
-            #     uid = row['uid']
-            #     items = row['history']
-            #     for i, item_id in enumerate(items):
-            #         records.append([uid, item_id, i + 1])
-            #
-            # inter_df = pd.DataFrame(records, columns=['user_id:token', 'item_id:token', 'timestamp:float'])
-            #
-            # inter_df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
-
     def get_model(self):
         """translates model name to model instance - to simulate loading a model, like it was with LLMs"""
         if self.model == 'BPR':
@@ -161,6 +138,17 @@ class BaselineRunner:
             return DeepFM
         if self.model == 'SASRec':
             return SASRec
+        if self.model == 'AutoInt':
+            return AutoInt
+        if self.model == 'DCN':
+            return DCN
+        if self.model == 'DCNV2':
+            return DCNV2
+        if self.model == 'LightGDCN':
+            return LightGCN
+        if self.model == 'PNN':
+            return PNN
+
         return ValueError('Unknown model')
 
     def get_data(self, parameter_dict):
@@ -203,8 +191,6 @@ class BaselineRunner:
             return ['user_id','candidates', 'label'], metrics, mode
 
     def run(self):
-        # self.get_dataset()
-
         cols, metrics, mode = self.set_task()
 
         task = 'prediction'
