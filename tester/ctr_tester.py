@@ -9,13 +9,13 @@ from loader.map import Map
 from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
 from utils import bars
 from utils.dataloader import get_steps
-from utils.exporter import Exporter
+from utils.export_writer import ExportWriter
 from utils.metrics import get_metrics_aggregator
 from loguru import logger
 
 
 class CTRTester:
-    def __init__(self, config, processor, model):
+    def __init__(self, config, processor, model, run_name):
         self.config = config
 
         self.model_name = config.model.upper()
@@ -36,18 +36,11 @@ class CTRTester:
 
         self.sign = ''
 
-        self.log_dir = os.path.join('export', self.dataset)
+        self.export_dir = os.path.join('export', run_name)
 
-        if self.use_embed:
-            assert self.config.embed_func in ['last', 'pool']
-            embed_suffix = '_embed'
-            if self.config.embed_func == 'pool':
-                embed_suffix += '_pool'
-            self.log_dir = os.path.join('export', self.dataset + embed_suffix)
+        os.makedirs(self.export_dir, exist_ok=True)
 
-        os.makedirs(self.log_dir, exist_ok=True)
-
-        self.exporter = Exporter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}_{self.task}.dat'))
+        self.exporter = ExportWriter(os.path.join(self.export_dir))
 
         if self.config.rerun:
             self.exporter.reset()
@@ -91,8 +84,8 @@ class CTRTester:
 
         progress = 0
 
-        if self.exporter.exists() and not self.config.latency:
-            responses = self.exporter.read(as_float=False)
+        if self.exporter.scores_exist() and not self.config.latency:
+            responses = self.exporter.read_scores(as_float=False)
             progress = len(responses)
             logger.debug(f'Start from {progress}')
 
@@ -129,7 +122,7 @@ class CTRTester:
             bar.set_postfix_str(f'label: {label}, response: {response}')
 
             if not self.config.latency:
-                self.exporter.write(response)
+                self.exporter.write_scores(response)
 
     def _get_embedding(self, _id, data, is_user=True):
         embed_dict = self.exporter.load_embed('user' if is_user else 'item')
@@ -177,10 +170,10 @@ class CTRTester:
     def test_embed(self):
         progress = 0
 
-        if self.exporter.exists():
-            responses = self.exporter.read()
+        if self.exporter.scores_exist():
+            responses = self.exporter.read_scores()
             progress = len(responses)
-            logger.debug(f'Start from {progress}')
+            logger.debug(f'Start testing from {progress}')
 
         source_set = self.processor.get_source_set(self.subset)
         data_gen = self.processor.generate(
@@ -208,7 +201,7 @@ class CTRTester:
 
             bar.set_postfix_str(f'label: {label}, score: {score:.4f}')
 
-            self.exporter.write(score)
+            self.exporter.write_scores(score)
 
     def test_encoding(self):
         preparer = DiscreteCodePreparer(
@@ -245,7 +238,7 @@ class CTRTester:
                 logger.info(f'{metric}: {value:.4f}')
 
     def evaluate(self):
-        scores = self.exporter.read()
+        scores = self.exporter.read_scores()
 
         source_set = self.processor.get_source_set(self.config.source)
 

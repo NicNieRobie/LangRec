@@ -98,3 +98,7 @@ arguments:
     required: false
     type: int
     default: 4141
+  run_name:
+    help: The name of the run.
+    required: false
+    type: str

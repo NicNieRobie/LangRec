@@ -148,7 +148,7 @@ class BaseModel:
         self.use_lora = True
 
         logger.info(f'Finetuning {self.get_name()} model with lora ({conf.lora_r}, {conf.lora_alpha}, {conf.lora_dropout})')
-        logger.debug('tune_from:', tune_from)
+        logger.debug(f'tune_from: {tune_from}')
 
         transformer_layers = []
         for name, _ in self.model.named_modules():

@@ -17,7 +17,7 @@ if __name__ == '__main__':
     arg_parser = ArgParser(cli_config_path)
     config = arg_parser.parse_args()
 
-    logger.debug('Args:', vars(config))
+    logger.debug(f'Args: {vars(config)}')
 
     seed(config.seed)
 
