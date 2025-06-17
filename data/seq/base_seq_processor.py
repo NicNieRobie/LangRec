@@ -63,14 +63,14 @@ class BaseSeqProcessor(BaseProcessor, abc.ABC):
 
     def _iterator(self, user_order, users):
         for uid in user_order:
-            user = users[users[self.USER_ID_COL] == int(uid)]
+            user = users[users[self.USER_ID_COL] == uid]
             yield user.iloc[0]
 
     @staticmethod
     def split(iterator, count):
         users = []
 
-        for user in tqdm(iterator, total=count):
+        for user in tqdm(iterator, total=count, desc="Generating split"):
             users.append(user)
             if len(users) >= count:
                 break

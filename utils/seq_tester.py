@@ -28,7 +28,7 @@ class SeqTester:
 
         group_list, ranks_list = [], []
         item_index = 0
-        for index, batch in tqdm(enumerate(dataloader), total=steps):
+        for index, batch in tqdm(enumerate(dataloader), total=steps, desc="Validating"):
             if random.random() * step > 1:
                 continue
 

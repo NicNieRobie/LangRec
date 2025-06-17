@@ -46,7 +46,7 @@ class Embedder:
 
         item_embeddings = []
 
-        for item_id in tqdm(self.processor.item_vocab):
+        for item_id in tqdm(self.processor.item_vocab, desc=f"Generating item embeddings for dataset {self.data}"):
             item = self.processor.organize_item(item_id, item_attrs=self.attrs or self.processor.default_attrs)
             embedding = self.model.embed(item or '[Empty]', truncate=True)
             item_embeddings.append(embedding)
