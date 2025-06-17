@@ -55,10 +55,13 @@ class Tuner:
             lr=self.config.lr
         )
 
-        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.valid_metric)
+        self.metrics_aggregator = self.build_metrics_aggregator()
 
         self.monitor = Monitor(metrics_aggregator=self.metrics_aggregator, patience=self.config.patience)
         self.latency_timer = Timer(activate=False)
+
+    def build_metrics_aggregator(self):
+        return CTRMetricsAggregator.build_from_config([self.config.valid_metric])
 
     def get_model(self):
         return self.model

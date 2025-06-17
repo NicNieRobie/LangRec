@@ -40,7 +40,7 @@ class Preparer:
         )
 
     def get_primary_signature(self):
-        return f'{self.processor.dataset_name}_{self.model.get_name()}'
+        return f'{self.processor.dataset_name}_{self.model.get_name()}_{self.config.task}_{self.config.code_type}'
 
     def get_secondary_signature(self):
         return f'{self.config.valid_ratio}'
