@@ -55,10 +55,13 @@ class Tuner:
             lr=self.config.lr
         )
 
-        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.valid_metric)
+        self.metrics_aggregator = self.build_metrics_aggregator()
 
         self.monitor = Monitor(metrics_aggregator=self.metrics_aggregator, patience=self.config.patience)
         self.latency_timer = Timer(activate=False)
+
+    def build_metrics_aggregator(self):
+        return CTRMetricsAggregator.build_from_config([self.config.valid_metric])
 
     def get_model(self):
         return self.model
@@ -79,9 +82,9 @@ class Tuner:
         self.model.model.eval()
         with torch.no_grad():
             metric_name, metric_values = None, []
-            print(f'(epoch {epoch}) validating: {self.processor.dataset_name}')
+            print(f'[Epoch {epoch}] Validating on dataset {self.processor.dataset_name}')
             score_list, label_list, group_list = [], [], []
-            for index, batch in enumerate(tqdm(valid_dl, total=total_valid_steps)):
+            for index, batch in enumerate(tqdm(valid_dl, total=total_valid_steps, desc="Validating")):
                 self.latency_timer.run('test')
                 scores = self.model.evaluate(batch)
                 self.latency_timer.run('test')
@@ -174,7 +177,8 @@ class Tuner:
         self.model.model.train()
         accumulate_step = 0
         self.optimizer.zero_grad()
-        for index, batch in tqdm(enumerate(train_dl), total=total_train_steps):
+
+        for index, batch in tqdm(enumerate(train_dl), total=total_train_steps, desc="Aligning"):
             if random.random() * self.config.align_step >= 1:
                 continue
 
@@ -209,7 +213,7 @@ class Tuner:
 
             accumulate_step = 0
             self.optimizer.zero_grad()
-            for index, batch in tqdm(enumerate(train_dl), total=total_train_steps):
+            for index, batch in tqdm(enumerate(train_dl), total=total_train_steps, desc="Tuning"):
                 loss = self.model.finetune(batch)
                 loss.backward()
 

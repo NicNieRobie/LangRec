@@ -86,7 +86,7 @@ class DiscreteCodePreparer(CodePreparer):
         datalist = []
         max_sequence_len = 0
 
-        for _, item in tqdm(self.processor.items.iterrows()):
+        for _, item in tqdm(self.processor.items.iterrows(), desc="Generating item alignment data"):
             content = self.processor.organize_item(item, item_attrs=self.processor.default_attrs, item_self=True)
             content = self.model.generate_simple_input_ids(content)
             content = content[:self.model.max_len // 5]

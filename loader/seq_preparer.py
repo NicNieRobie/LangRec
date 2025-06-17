@@ -20,11 +20,10 @@ class SeqPreparer(DiscreteCodePreparer):
         datalist = []
         max_seq_len = 0
 
-        print(f'Preprocessing {self.processor.dataset_name} dataset')
-
         for index, data in tqdm(
             enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
-            total=len(self.processor.get_source_set(source=source))
+            total=len(self.processor.get_source_set(source=source)),
+            desc=f"Preprocessing the {self.processor.dataset_name} dataset"
         ):
             uid, history = data
 

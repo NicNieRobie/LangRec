@@ -104,7 +104,7 @@ class RQVAETrainer(object):
             train_data,
             total=len(train_data),
             ncols=100,
-            desc=f"Train RQ-VAE {epoch_idx}",
+            desc=f"Training RQ-VAE, epoch {epoch_idx}",
         )
 
         for batch_idx, data in enumerate(iter_data):
@@ -131,7 +131,7 @@ class RQVAETrainer(object):
             valid_data,
             total=len(valid_data),
             ncols=100,
-            desc=f"Evaluate RQ-VAE "
+            desc=f"Evaluating RQ-VAE"
         )
 
         indices_set = set()

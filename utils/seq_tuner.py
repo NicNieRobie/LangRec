@@ -22,6 +22,13 @@ class SeqTuner(Tuner):
     model: BaseSeqModel
     num_codes: int
 
+    def build_metrics_aggregator(self):
+        return SeqMetricsAggregator.build_from_config(
+            [self.config.valid_metric],
+            num_items=self.num_codes,
+            prod_mode=self.config.search_mode == 'prod'
+        )
+
     def load_model(self):
         device = get_device(self.config.gpu)
         _, code_list, self.num_codes = get_code_indices(self.config, device)
@@ -64,7 +71,7 @@ class SeqTuner(Tuner):
 
         group_list, ranks_list = [], []
         item_index = 0
-        for index, batch in tqdm(enumerate(dataloader), total=steps):
+        for index, batch in tqdm(enumerate(dataloader), total=steps, desc="Validating"):
             if random.random() * step > 1:
                 continue
 
@@ -89,12 +96,7 @@ class SeqTuner(Tuner):
                 group_list.extend(groups)
                 ranks_list.extend(rank)
 
-        aggregator = SeqMetricsAggregator.build_from_config(
-            self.config.metrics,
-            num_items=self.num_codes,
-            prod_mode=search_mode == 'prod'
-        )
-        results = aggregator(ranks_list, group_list)
+        results = self.metrics_aggregator(ranks_list, group_list)
 
         return results
 

@@ -87,7 +87,7 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
         the index of the positive item.
         """
         df = pd.DataFrame()
-        with tqdm(total=count) as pbar:
+        with tqdm(total=count, desc="Generating split") as pbar:
             for group in iterator:
                 pos_ids = group[group[self.LABEL_COL] == 1]
                 neg_ids = items[~items[self.ITEM_ID_COL].isin(pos_ids)]

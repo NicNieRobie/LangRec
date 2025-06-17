@@ -134,10 +134,10 @@ arguments:
     type: float
     default: 0.1
   valid_metric:
-    help: Metric used to evaluate models on validation step
+    help: Metric to use for validation.
     required: false
     type: str
-    default: 'GAUC'
+    default: GAUC
   lr:
     help: Learning rate
     required: false
