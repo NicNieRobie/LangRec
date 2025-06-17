@@ -1,8 +1,14 @@
+import os
+
+from codecarbon import OfflineEmissionsTracker
+
 from data.base_processor import BaseProcessor
 from model.seq.base_seq_model import BaseSeqModel
 from tester.ctr_tester import CTRTester
 from tester.seq_tester import SeqTester
+from tester.drec_tester import DrecTester
 from tuner.ctr_tuner import CTRTuner
+from tuner.drec_tuner import DrecTuner
 from tuner.seq_tuner import SeqTuner
 from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
@@ -38,12 +44,16 @@ class Runner:
     def _init_tuner(self):
         if self.config.task == 'seq':
             return SeqTuner(self.config, self.processor)
+        elif self.config.task == 'drec':
+            return DrecTuner(self.config, self.processor)
         else:
             return CTRTuner(self.config, self.processor)
 
     def _init_tester(self):
         if self.config.task == 'seq':
             return SeqTester(self.config, self.processor, self.model)
+        elif self.config.task == 'drec':
+            return DrecTester(self.config, self.processor, self.model)
         else:
             return CTRTester(self.config, self.processor, self.model)
 
@@ -86,7 +96,23 @@ class Runner:
 
     def run(self):
         if self.config.mode in ["finetune", "testtune"]:
-            self.tuner()
+            with OfflineEmissionsTracker(
+                country_iso_code="RUS",
+                log_level="ERROR",
+                output_file=os.path.join(
+                    "emissions",
+                    f"{self.model_name}_{self.dataset}_{self.task}_{self.config.code_type}_finetune_emissions.csv"
+                ),
+            ) as tracker:
+                self.tuner()
 
         if self.config.mode in ["test", "testtune"]:
-            self.tester()
+            with OfflineEmissionsTracker(
+                country_iso_code="RUS",
+                log_level="ERROR",
+                output_file=os.path.join(
+                    "emissions",
+                    f"{self.model_name}_{self.dataset}_{self.task}_{self.config.code_type}_test_emissions.csv"
+                ),
+            ) as tracker:
+                self.tester()

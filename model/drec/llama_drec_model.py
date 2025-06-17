@@ -2,13 +2,13 @@ import abc
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from utils.prompts import DREC_SIMPLE_PROMPT, DREC_PROMPT_SUFFIX
-from model.drec.base_model import BaseDrecModel
+from model.drec.base_drec_model import BaseDrecModel
 from utils.auth import HF_KEY
 from utils.discovery.ignore_discovery import ignore_discovery
 
 
 @ignore_discovery
-class LlamaModel(BaseDrecModel, abc.ABC):
+class LlamaDrecModel(BaseDrecModel, abc.ABC):
     PREFIX_PROMPT = DREC_SIMPLE_PROMPT
     SUFFIX_PROMPT = DREC_PROMPT_SUFFIX
     BIT = 16
@@ -43,17 +43,9 @@ class LlamaModel(BaseDrecModel, abc.ABC):
         )
 
 
-class Llama1Model(LlamaModel):
+class Llama3_1DrecModel(LlamaDrecModel):
     pass
 
 
-class Llama2Model(LlamaModel):
-    pass
-
-
-class Llama3Model(LlamaModel):
-    pass
-
-
-class Llama3_1Model(LlamaModel):
+class LlamaTulu_3_1DrecModel(LlamaDrecModel):
     pass

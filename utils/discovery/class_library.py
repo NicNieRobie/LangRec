@@ -9,9 +9,10 @@ from data.ctr.base_ctr_processor import BaseCTRProcessor
 from data.drec.base_drec_processor import BaseDrecProcessor
 from data.seq.base_seq_processor import BaseSeqProcessor
 from metrics.ctr.base_ctr_metric import BaseCTRMetric
+from metrics.drec.base_drec_metric import BaseDrecMetric
 from metrics.seq.base_seq_metric import BaseSeqMetric
 from model.ctr.base_model import BaseCTRModel
-from model.drec.base_model import BaseDrecModel
+from model.drec.base_drec_model import BaseDrecModel
 from model.seq.base_seq_model import BaseSeqModel
 
 T = TypeVar('T')
@@ -141,7 +142,7 @@ class ClassLibrary:
         elif task == "seq":
             return ClassLibraryFactory.create_library(BaseSeqModel, path, 'seq_model')
         else:
-            return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
+            return ClassLibraryFactory.create_library(BaseDrecModel, path, 'drec_model')
 
     @staticmethod
     def baseline_models(task: str):
@@ -164,3 +165,8 @@ class ClassLibrary:
     def seq_metrics():
         path = os.path.sep.join(['metrics', 'seq'])
         return ClassLibraryFactory.create_library(BaseSeqMetric, path)
+
+    @staticmethod
+    def seq_metrics():
+        path = os.path.sep.join(['metrics', 'drec'])
+        return ClassLibraryFactory.create_library(BaseDrecMetric, path)

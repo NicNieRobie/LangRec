@@ -3,15 +3,15 @@ import heapq
 import torch
 from torch import nn
 
-from loader.code_map import SeqCodeMap
+from loader.code_map import DrecCodeMap
 from model.base_discrete_code_model import BaseDiscreteCodeModel
 from utils.discovery.ignore_discovery import ignore_discovery
-from utils.prompts import SEQ_PROMPT
 
 
 @ignore_discovery
-class BaseSeqModel(BaseDiscreteCodeModel):
-    PREFIX_PROMPT = SEQ_PROMPT
+class BaseDrecModel(BaseDiscreteCodeModel):
+    PREFIX_PROMPT: str
+    SUFFIX_PROMPT: str
 
     PREDICT_ALL = True
 
@@ -29,12 +29,14 @@ class BaseSeqModel(BaseDiscreteCodeModel):
 
             curr_idx += num
 
+        print(self.code_list)
+
         self.code_tree = None
         self.code_map = None
 
     @classmethod
     def get_name(cls):
-        return cls.__name__.replace('SeqModel', '').upper()
+        return cls.__name__.replace('DrecModel', '').upper()
 
     def set_code_meta(self, code_tree, code_map):
         self.code_tree = code_tree
@@ -47,7 +49,7 @@ class BaseSeqModel(BaseDiscreteCodeModel):
 
         output = self.model(
             inputs_embeds=input_embeddings,
-            attention_mask=attention_mask.float(),
+            attention_mask=attention_mask,
             output_hidden_states=True
         )
 
@@ -96,18 +98,30 @@ class BaseSeqModel(BaseDiscreteCodeModel):
         repeated = tensor.repeat(repeat_count, 1)
         return repeated.view(batch_size * repeat_count, *tensor.shape[1:])
 
-    def _get_valid_token_set(self, path):
+    @staticmethod
+    def _filter_by_prefix(lsts, prefix):
+        prefix_len = len(prefix)
+        return [lst for lst in lsts if lst[:prefix_len] == prefix]
+
+    def _get_valid_token_set(self, path, candidates):
         node = self.code_tree
-        for token in path:
+        curr_idx = 0
+
+        for idx, token in enumerate(path):
             node = node.get(token, {})
-        return set(node.keys())
+            curr_idx += 1
+
+        candidates_by_prefix = self._filter_by_prefix(candidates, path)
+        valid_tokens = [candidate[curr_idx] for candidate in candidates_by_prefix]
+
+        return set(valid_tokens)
 
     def decode_prod(self, batch):
-        _, logits = self._get_logits(batch) # [B, BIGL, C] BIGL is initial embedding size, C is the vocabulary size
+        _, logits = self._get_logits(batch) # [B, BIGL, C]
         batch_size = logits.size(0)
 
-        decode_start = batch[SeqCodeMap.SOB_COL].to(self.device) # [B]
-        decode_length = batch[SeqCodeMap.LOB_COL].to(self.device) # [B]
+        decode_start = batch[DrecCodeMap.SOB_COL].to(self.device) # [B]
+        decode_length = batch[DrecCodeMap.LOB_COL].to(self.device) # [B]
         if decode_length.max().item() != decode_length.min().item():
             raise ValueError('Decode length beam_length should be the same')
 
@@ -118,7 +132,7 @@ class BaseSeqModel(BaseDiscreteCodeModel):
         dl_ar = torch.arange(decode_length).to(self.device)
 
         ground_truth_indices = decode_start.unsqueeze(-1) + dl_ar
-        input_ids = batch[SeqCodeMap.IPT_COL].to(self.device)
+        input_ids = batch[DrecCodeMap.IPT_COL].to(self.device)
 
         # Here L is the length of the item's code
         ground_truth = input_ids[bs_ar.unsqueeze(-1), ground_truth_indices] # [B, L]
@@ -135,10 +149,10 @@ class BaseSeqModel(BaseDiscreteCodeModel):
     def beam_search(self, batch, search_width=3, search_mode='tree'):
         list_search = search_mode == 'easy'
 
-        orig_batch_size = batch[SeqCodeMap.LEN_COL].size(0)
-        batch[SeqCodeMap.BTH_COL] = torch.arange(orig_batch_size, device=self.device)
+        orig_batch_size = batch[DrecCodeMap.LEN_COL].size(0)
+        batch[DrecCodeMap.BTH_COL] = torch.arange(orig_batch_size, device=self.device)
 
-        beam_lengths = batch[SeqCodeMap.LOB_COL].tolist()
+        beam_lengths = batch[DrecCodeMap.LOB_COL].tolist()
         max_decode_steps = int(max(beam_lengths))
 
         # Repeat batch
@@ -146,15 +160,15 @@ class BaseSeqModel(BaseDiscreteCodeModel):
             batch[key] = self._repeat_tensor(batch[key], search_width)
         total_batch_size = orig_batch_size * search_width
 
-        batch[SeqCodeMap.LID_COL] = torch.arange(search_width, device=self.device).repeat_interleave(orig_batch_size)
+        batch[DrecCodeMap.LID_COL] = torch.arange(search_width, device=self.device).repeat_interleave(orig_batch_size)
 
-        beam_start = batch[SeqCodeMap.SOB_COL].to(self.device).unsqueeze(-1)
+        beam_start = batch[DrecCodeMap.SOB_COL].to(self.device).unsqueeze(-1)
 
         # Precompute ground truth indices
         range_tensor = torch.arange(max_decode_steps, device=self.device).unsqueeze(0)
         ground_truth_indices = beam_start + range_tensor
 
-        input_ids = batch[SeqCodeMap.IPT_COL].to(self.device)
+        input_ids = batch[DrecCodeMap.IPT_COL].to(self.device)
         total_indices = torch.arange(total_batch_size, device=self.device).unsqueeze(-1)
         ground_truth = input_ids[total_indices, ground_truth_indices][:orig_batch_size]
 
@@ -182,7 +196,7 @@ class BaseSeqModel(BaseDiscreteCodeModel):
                     new_beams[sample_id] = last_beams[sample_id]
                     continue
 
-                valid_tokens = None if list_search else self._get_valid_token_set(last_beams[sample_id][0][1])
+                valid_tokens = None if list_search else self._get_valid_token_set(last_beams[sample_id][0][1], batch[DrecCodeMap.DCT_COL][sample_id])
                 for beam_idx, (cur_score, cur_path) in enumerate(last_beams[sample_id]):
                     global_idx = beam_idx * orig_batch_size + sample_id
 
@@ -241,7 +255,8 @@ class BaseSeqModel(BaseDiscreteCodeModel):
         line = self.generate_simple_input_ids('\n')
         numbers = {i: self.generate_simple_input_ids(f'({i}) ') for i in range(1, 128)}
         user = self.generate_simple_input_ids('User behavior sequence: \n')
-        item = self.generate_simple_input_ids('Next item: ')
+        item = self.generate_simple_input_ids('Candidate items: ')
         prefix = self.generate_simple_input_ids(self.PREFIX_PROMPT)
+        suffix = self.generate_simple_input_ids(self.SUFFIX_PROMPT)
 
-        return line, numbers, user, item, prefix
+        return line, numbers, user, item, prefix, suffix

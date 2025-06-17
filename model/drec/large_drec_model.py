@@ -3,7 +3,7 @@ import abc
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from utils.prompts import DREC_SIMPLE_PROMPT, DREC_PROMPT_SUFFIX
-from model.drec.base_model import BaseDrecModel
+from model.drec.base_drec_model import BaseDrecModel
 from utils.auth import HF_KEY
 from utils.discovery.ignore_discovery import ignore_discovery
 
@@ -36,15 +36,6 @@ class Mistral7BModel(LargeDrecModel):
 
 
 class Phi3_7BModel(LargeDrecModel):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self.max_len = 2_000
-
-
-class Phi2_3BModel(LargeDrecModel):
-    NUM_LAYERS = 32
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
