@@ -51,6 +51,14 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
             self.loader.save_parquet('interactions', self.interactions)
             logger.debug(f'{self.DATASET_NAME} cached')
 
+        self.interactions = self.interactions[
+            self.interactions[self.USER_ID_COL].isin(self.users[self.USER_ID_COL])
+        ]
+
+        self.interactions = self.interactions[
+            self.interactions[self.ITEM_ID_COL].isin(self.items[self.ITEM_ID_COL])
+        ]
+
         if self.CAST_TO_STRING:
             self.users[self.HISTORY_COL] = self.users[self.HISTORY_COL].apply(lambda x: [str(i) for i in x])
 
