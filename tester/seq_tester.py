@@ -28,7 +28,7 @@ class SeqTester:
 
         group_list, ranks_list = [], []
         item_index = 0
-        for index, batch in tqdm(enumerate(dataloader), total=steps, desc="Validating"):
+        for index, batch in tqdm(enumerate(dataloader), total=steps, desc="Testing"):
             if random.random() * step > 1:
                 continue
 
@@ -55,7 +55,6 @@ class SeqTester:
 
         aggregator = SeqMetricsAggregator.build_from_config(
             self.config.metrics,
-            num_items=self.num_codes,
             prod_mode=search_mode == 'prod'
         )
         results = aggregator(ranks_list, group_list)

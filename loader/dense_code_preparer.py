@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from utils.obj_idx_vocabulary import ObjIdxVocabulary as Vocab
+from tuner.tune_utils.obj_idx_vocabulary import ObjIdxVocabulary as Vocab
 from loader.code_preparer import CodePreparer
 from loader.code_dataset import CodeDataset
 from loader.code_map import CodeMap as Map

@@ -4,6 +4,7 @@ SENTENCET5: sentence-transformers/sentence-t5-base
 
 LLAMA:
   "3_1": meta-llama/Llama-3.1-8B-Instruct
+  "3_1_DC": meta-llama/Llama-3.1-8B
   "TULU_3_1": allenai/Llama-3.1-Tulu-3.1-8B
 
 RECGPT:
@@ -22,4 +23,5 @@ PHI:
 
 BERT:
   BASE: google-bert/bert-base-uncased
+  BASE_DC: google-bert/bert-base-uncased
   LARGE: google-bert/bert-large-uncased
