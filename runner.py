@@ -13,6 +13,7 @@ from tuner.seq_tuner import SeqTuner
 from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
+from loguru import logger
 
 
 class Runner:
@@ -87,10 +88,10 @@ class Runner:
             return GPU.auto_choose(torch_format=True)
 
         if self.config.gpu == -1:
-            print('Choosing CPU device')
+            logger.info('Choosing CPU device')
             return 'cpu'
 
-        print(f'Choosing {self.config.gpu}-th GPU')
+        logger.info(f'Choosing {self.config.gpu}-th GPU')
         return f'CUDA: {self.config.gpu}'
 
     def run(self):

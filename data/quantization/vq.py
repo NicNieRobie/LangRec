@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from loguru import logger
 
 from data.quantization.layers import kmeans, sinkhorn_algorithm
 
@@ -96,7 +97,7 @@ class VectorQuantizer(nn.Module):
             d = d.double()
             Q = sinkhorn_algorithm(d, self.sk_epsilon, self.sk_iters)
             if torch.isnan(Q).any() or torch.isinf(Q).any():
-                print(f"Sinkhorn Algorithm returns nan/inf values.")
+                logger.warning(f"Sinkhorn Algorithm returns nan/inf values.")
             indices = torch.argmax(Q, dim=-1)
 
         if self.use_linear == 1:

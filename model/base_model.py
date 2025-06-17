@@ -5,6 +5,7 @@ from peft import LoraConfig, get_peft_model
 
 from loader.map import Map
 from utils.model import match
+from loguru import logger
 
 
 class BaseModel:
@@ -142,12 +143,12 @@ class BaseModel:
         tune_from = self.NUM_LAYERS + tune_from if tune_from < 0 else tune_from
 
         if not conf.use_lora:
-            print(f'fully finetuning {self.get_name()} model without lora')
+            logger.info(f'Fully finetuning {self.get_name()} model without lora')
             return
         self.use_lora = True
 
-        print(f'finetuning {self.get_name()} model with lora ({conf.lora_r}, {conf.lora_alpha}, {conf.lora_dropout})')
-        print('tune_from:', tune_from)
+        logger.info(f'Finetuning {self.get_name()} model with lora ({conf.lora_r}, {conf.lora_alpha}, {conf.lora_dropout})')
+        logger.debug('tune_from:', tune_from)
 
         transformer_layers = []
         for name, _ in self.model.named_modules():
@@ -192,7 +193,7 @@ class BaseModel:
         torch.save(state_dict, path)
 
     def load_pretrained(self, path):
-        print(f"Loading finetuned model from {path}")
+        logger.info(f"Loading finetuned model from {path}")
 
         state_dict = torch.load(path, map_location='cpu')
 

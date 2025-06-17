@@ -29,8 +29,6 @@ class BaseSeqModel(BaseDiscreteCodeModel):
 
             curr_idx += num
 
-        print(self.code_list)
-
         self.code_tree = None
         self.code_map = None
 

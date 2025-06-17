@@ -12,6 +12,7 @@ from loader.preparer import Preparer
 from model.base_model import BaseModel
 from tuner.tune_utils.monitor import Monitor
 from utils.timer import Timer
+from loguru import logger
 
 
 class Tuner:
@@ -119,10 +120,6 @@ class Tuner:
                 self.optimizer.zero_grad()
                 accumulate_step = 0
 
-    @property
-    def test_command(self):
-        return f'python main.py --model {self.model} --dataset <data_name>'
-
     def finetune(self):
         train_df, valid_dl = self.load_data()
 
@@ -154,8 +151,7 @@ class Tuner:
                 if (index + 1) % eval_interval == 0:
                     action = self.evaluate(valid_dl, epoch)
                     if action is self.monitor.STOP:
-                        print('early stopping')
-                        print(f'please evaluate the model by: {self.test_command}')
+                        logger.info('Early stopping')
                         return
 
             epoch += 1
@@ -170,7 +166,7 @@ class Tuner:
         except KeyboardInterrupt:
             pass
         st = self.latency_timer.status_dict['test']
-        print(f'Total {st.count} steps, avg ms {st.avgms():.4f}')
+        logger.info(f'Total {st.count} steps, avg ms {st.avgms():.4f}')
 
     def __call__(self):
         if self.config.latency:

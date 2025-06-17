@@ -4,6 +4,7 @@ import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
+from loguru import logger
 
 from data.loader import Loader
 from data.processor_state import ProcessorState
@@ -129,15 +130,15 @@ class BaseProcessor(abc.ABC):
 
     def try_load_cached_splits(self, suffix: str = None) -> bool:
         if self.test_set_valid and self.finetune_set_valid:
-            print(f'Loading {self.DATASET_NAME} splits from cache')
+            logger.debug(f'Loading {self.DATASET_NAME} splits from cache')
 
             if self.NUM_TEST:
                 self.test_set = self.loader.load_parquet('test' + suffix)
-                print('Loaded test set')
+                logger.debug('Loaded test set')
 
             if self.NUM_FINETUNE:
                 self.finetune_set = self.loader.load_parquet('finetune' + suffix)
-                print('Loaded finetune set')
+                logger.debug('Loaded finetune set')
 
             self._loaded = True
 
