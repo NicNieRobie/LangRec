@@ -15,7 +15,7 @@ from utils.timer import Timer
 
 
 class Tuner:
-    PREPARER_CLASSS: Type[Preparer] = Preparer
+    PREPARER_CLASS: Type[Preparer] = Preparer
 
     model: BaseModel
 
@@ -51,9 +51,6 @@ class Tuner:
 
         self.monitor = Monitor(metrics_aggregator=self.metrics_aggregator, patience=self.config.patience)
         self.latency_timer = Timer(activate=False)
-
-        if self.use_encoding():
-            self.PREPARER_CLASS = DiscreteCodePreparer
 
     def build_metrics_aggregator(self):
         raise NotImplementedError

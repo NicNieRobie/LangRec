@@ -16,7 +16,7 @@ class DrecMetricsAggregator(BaseMetricsAggregator):
         super().__init__(metrics, metric_dict)
 
     @classmethod
-    def build_from_config(cls, metrics_config, num_items, prod_mode):
+    def build_from_config(cls, metrics_config, prod_mode):
         metrics = ClassLibrary.seq_metrics()
 
         metric_dict = {m.name.upper(): m for name, m in metrics.class_dict.items()}
@@ -33,7 +33,7 @@ class DrecMetricsAggregator(BaseMetricsAggregator):
             if m_str.upper() not in metric_dict:
                 raise ValueError(f'Metric {m_str} not found')
 
-            metrics.append(metric_dict[m_str.upper()](num_items=num_items, prod_mode=prod_mode, *arguments))
+            metrics.append(metric_dict[m_str.upper()](prod_mode=prod_mode, *arguments))
 
         return cls(metrics, metric_dict)
 

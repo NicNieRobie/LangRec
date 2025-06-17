@@ -7,8 +7,7 @@ from metrics.base_metric import BaseMetric
 
 
 class BaseDrecMetric(BaseMetric):
-    def __init__(self, num_items, prod_mode):
-        self.num_items = num_items
+    def __init__(self, prod_mode):
         self.prod_mode = prod_mode
 
     def _calculate(self, rank: int) -> Union[int, float]:

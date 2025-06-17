@@ -13,7 +13,7 @@ from utils.code import get_code_indices
 from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
-from utils.tuner import Tuner
+from tuner.tuner import Tuner
 
 
 class DrecTuner(Tuner):
@@ -21,6 +21,12 @@ class DrecTuner(Tuner):
 
     model: BaseDrecModel
     num_codes: int
+
+    def build_metrics_aggregator(self):
+        return DrecMetricsAggregator.build_from_config(
+            [self.config.valid_metric],
+            prod_mode=self.config.search_mode == 'prod'
+        )
 
     def load_model(self):
         device = get_device(self.config.gpu)
@@ -64,7 +70,7 @@ class DrecTuner(Tuner):
 
         group_list, ranks_list = [], []
         item_index = 0
-        for index, batch in tqdm(enumerate(dataloader), total=steps):
+        for index, batch in tqdm(enumerate(dataloader), total=steps, desc="Validating"):
             if random.random() * step > 1:
                 continue
 
@@ -89,12 +95,7 @@ class DrecTuner(Tuner):
                 group_list.extend(groups)
                 ranks_list.extend(rank)
 
-        aggregator = DrecMetricsAggregator.build_from_config(
-            self.config.metrics,
-            num_items=self.num_codes,
-            prod_mode=search_mode == 'prod'
-        )
-        results = aggregator(ranks_list, group_list)
+        results = self.metrics_aggregator(ranks_list, group_list)
 
         return results
 
@@ -121,4 +122,3 @@ class DrecTuner(Tuner):
             print(f'Saving best model to {self.log_dir}/{self.sign}.pt')
 
         return action
-

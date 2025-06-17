@@ -15,9 +15,11 @@ arguments:
       - PHI3_7B
       - RECGPT7B
       - LLAMA3_1
+      - LLAMA3_1_DC
       - LLAMATULU_3_1
       - BERTBASE
       - BERTLARGE
+      - BERTBASE_DC
       - P5BEAUTY_SMALL
       - P5BEAUTY_BASE
   dataset:
@@ -30,13 +32,12 @@ arguments:
       - STEAM
   task:
     help: Recommendation task to perform
-    required: false
+    required: true
     type: str
     choices:
       - ctr
       - drec
       - seq
-    default: drec
   metrics:
     help: Comma-separated list of metrics to use for evaluation.
     required: false

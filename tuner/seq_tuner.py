@@ -122,4 +122,3 @@ class SeqTuner(Tuner):
             print(f'Saving best model to {self.log_dir}/{self.sign}.pt')
 
         return action
-

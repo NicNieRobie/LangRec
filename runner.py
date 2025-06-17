@@ -6,9 +6,9 @@ from data.base_processor import BaseProcessor
 from model.seq.base_seq_model import BaseSeqModel
 from tester.ctr_tester import CTRTester
 from tester.seq_tester import SeqTester
-from utils.drec_tester import DrecTester
+from tester.drec_tester import DrecTester
 from tuner.ctr_tuner import CTRTuner
-from utils.drec_tuner import DrecTuner
+from tuner.drec_tuner import DrecTuner
 from tuner.seq_tuner import SeqTuner
 from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
@@ -97,6 +97,7 @@ class Runner:
         if self.config.mode in ["finetune", "testtune"]:
             with OfflineEmissionsTracker(
                 country_iso_code="RUS",
+                log_level="ERROR",
                 output_file=os.path.join(
                     "emissions",
                     f"{self.model_name}_{self.dataset}_{self.task}_{self.config.code_type}_finetune_emissions.csv"
@@ -107,6 +108,7 @@ class Runner:
         if self.config.mode in ["test", "testtune"]:
             with OfflineEmissionsTracker(
                 country_iso_code="RUS",
+                log_level="ERROR",
                 output_file=os.path.join(
                     "emissions",
                     f"{self.model_name}_{self.dataset}_{self.task}_{self.config.code_type}_test_emissions.csv"
