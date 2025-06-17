@@ -29,7 +29,8 @@ class DrecPreparer(DiscreteCodePreparer):
             uid, iids, history, label = data
 
             history = history[-1:]
-            cand_items = [items[iid] for iid in iids]
+            cand_items = [items[str(iid)][0] for iid in iids]
+            label = items[str(label)]
 
             input_ids = prefix + user
             vocab_ids = [TV.LLM] * len(input_ids)
@@ -38,16 +39,16 @@ class DrecPreparer(DiscreteCodePreparer):
             beam_length = len(label)
 
             for i in range(len(history)):
-                input_ids += numbers[i + 1] + items[history[i]] + line
-                vocab_ids += [TV.LLM] * len(numbers[i + 1]) + [TV.COD] * len(items[history[i]]) + [TV.LLM] * len(line)
-                beam_start += len(numbers[i + 1]) + len(items[history[i]]) + len(line)
+                input_ids += numbers[i + 1] + items[str(history[i])] + line
+                vocab_ids += [TV.LLM] * len(numbers[i + 1]) + [TV.COD] * len(items[str(history[i])]) + [TV.LLM] * len(line)
+                beam_start += len(numbers[i + 1]) + len(items[str(history[i])]) + len(line)
 
             input_ids += item
             vocab_ids += [TV.LLM] * len(item)
 
-            for idx, curr_item in enumerate(cand_items):
-                input_ids += numbers[idx + 1] + curr_item + line
-                vocab_ids += [TV.LLM] * len(numbers[idx + 1]) + [TV.COD] * len(curr_item) + [TV.LLM] * len(line)
+            for idx, curr_item in enumerate(iids):
+                input_ids += numbers[idx + 1] + items[str(curr_item)] + line
+                vocab_ids += [TV.LLM] * len(numbers[idx + 1]) + [TV.COD] * len(items[str(curr_item)]) + [TV.LLM] * len(line)
 
             beam_start += len(item)
 

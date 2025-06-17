@@ -4,6 +4,7 @@ import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 
 from data.base_processor import BaseProcessor
@@ -92,10 +93,16 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
                 pos_ids = group[group[self.LABEL_COL] == 1]
                 neg_ids = items[~items[self.ITEM_ID_COL].isin(pos_ids)]
 
+                true_label = pos_ids[self.ITEM_ID_COL].iloc[-1]
+
                 group_data = {
                     self.USER_ID_COL: pos_ids[self.USER_ID_COL].iloc[-1],
-                    self.LABEL_COL: pos_ids[self.ITEM_ID_COL].iloc[-1],
-                    self.ITEM_ID_COL: list(neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]) + [pos_ids[self.ITEM_ID_COL].iloc[-1]],
+                    self.LABEL_COL: true_label,
+                    self.ITEM_ID_COL: [
+                        list(
+                            neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]
+                        ) + [true_label]
+                    ],
                 }
 
                 df = pd.concat([df, pd.DataFrame.from_dict(group_data)])
@@ -157,11 +164,13 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
 
         for _, row in df.iterrows():
             uid = row[self.USER_ID_COL]
-            candidates = row[self.ITEM_ID_COL]
-            label = row[self.LABEL_COL]
+            candidates = row[self.ITEM_ID_COL].astype("int64")
+            label = np.int64(row[self.LABEL_COL])
 
             user = self.users.iloc[self.user_vocab[uid]]
-            history = slicer(user[self.HISTORY_COL])
+            history = slicer(user[self.HISTORY_COL].astype("int64"))
+            # history and candidate items are converted to lists of ints. This done so that torch will not shit itself
+            # as soon as `loader.Datasets`'s __getitem__ is used.
 
             if id_only:
                 yield uid, candidates, history, label

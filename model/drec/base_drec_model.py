@@ -196,7 +196,7 @@ class BaseDrecModel(BaseDiscreteCodeModel):
                     new_beams[sample_id] = last_beams[sample_id]
                     continue
 
-                valid_tokens = None if list_search else self._get_valid_token_set(last_beams[sample_id][0][1], batch[DrecCodeMap.DCT_COL])
+                valid_tokens = None if list_search else self._get_valid_token_set(last_beams[sample_id][0][1], batch[DrecCodeMap.DCT_COL][sample_id])
                 for beam_idx, (cur_score, cur_path) in enumerate(last_beams[sample_id]):
                     global_idx = beam_idx * orig_batch_size + sample_id
 

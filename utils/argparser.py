@@ -1,9 +1,11 @@
 import os.path
 import sys
 
+from typing import Union
+from collections.abc import Iterable
+
 import yaml
 import argparse
-
 
 class ArgParser:
     def __init__(self, config_path):
@@ -13,12 +15,34 @@ class ArgParser:
         self.__args_str = None
 
     @staticmethod
-    def _load_config(config_path):
+    def _load_config_from_file(config_path: str):
+        """
+        Loads the config from a single file
+        """
         if not os.path.exists(config_path):
             raise FileNotFoundError(f'CLI config file not found: {config_path}')
 
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
+
+    @staticmethod
+    def _load_config(config_path: Union[Iterable[str], str]):
+        """
+        Loads the config from a single source file or appends configs from multiple sources
+        """
+        if isinstance(config_path, Iterable) and not isinstance(config_path, str):
+            ans = {"arguments": dict()}
+            for path in config_path:
+                config = ArgParser._load_config_from_file(path)
+
+                if config.get("description", False):
+                    ans["description"] = config.get("description")
+
+                ans["arguments"].update(config["arguments"])
+
+            return ans
+        else:
+            return ArgParser._load_config_from_file(config_path)
 
     def _init_parser(self):
         parser = argparse.ArgumentParser(description=self.config.get('description', ''))

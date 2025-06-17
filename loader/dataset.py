@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset as BaseDataset
@@ -28,4 +29,4 @@ class Dataset(BaseDataset):
 
     def __getitem__(self, idx):
         values = self.datalist.iloc[idx]
-        return {column: torch.tensor(values[column], dtype=torch.long) for column in self.datalist.columns}
+        return {column: torch.tensor(np.array(values[column], dtype=np.int64), dtype=torch.long) if values.dtype == np.object_ else torch.tensor(values[column], dtype=torch.long) for column in self.datalist.columns}
