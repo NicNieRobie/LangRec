@@ -32,10 +32,10 @@ class SIDEncoder(BaseEncoder):
         self.num_emb_list = config.rqvae_num_emb_list
         self.sizes = f"{int(self.num_emb_list[0])}x{len(self.num_emb_list)}"
 
-        output_name = f'{self.dataset}_{self.model_name}_{self.sizes}_{self.task}_sid.json'.lower()
+        output_name = f'{self.dataset}_{self.model_name}_{self.sizes}_{self.task}_sid'.lower()
 
         self.rqvae_ckpt_path = os.path.join(ckpt_dir, output_name)
-        self.code_output_path = os.path.join(output_dir, output_name)
+        self.code_output_path = os.path.join(output_dir, f'{output_name}.json')
 
         self.rqvae = RQVAE(
             num_emb_list=list(map(int, config.rqvae_num_emb_list)),
