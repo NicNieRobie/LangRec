@@ -11,6 +11,7 @@ from utils import bars
 from utils.dataloader import get_steps
 from utils.exporter import Exporter
 from utils.metrics import get_metrics_aggregator
+from loguru import logger
 
 
 class CTRTester:
@@ -93,7 +94,7 @@ class CTRTester:
         if self.exporter.exists() and not self.config.latency:
             responses = self.exporter.read(as_float=False)
             progress = len(responses)
-            print(f'Start from {progress}')
+            logger.debug(f'Start from {progress}')
 
         source_set = self.processor.get_source_set(self.subset)
         data_gen = self.processor.generate(slicer=self.config.history_window, source=self.config.source)
@@ -110,7 +111,7 @@ class CTRTester:
             response = self._retry_with_truncation(history, candidate, input_template)
 
             if response is None:
-                print(f'Failed to get response for {idx} ({uid}, {item_id})')
+                logger.error(f'Failed to get response for {idx} ({uid}, {item_id})')
                 exit(0)
 
             if isinstance(response, int):
@@ -161,7 +162,7 @@ class CTRTester:
                 history, candidate = self._truncate_inputs(history, candidate)
 
         if embed is None:
-            print(f'Failed to get {"user" if is_user else "item"} embeddings for {_id}')
+            logger.error(f'Failed to get {"user" if is_user else "item"} embeddings for {_id}')
             exit(0)
 
         embed_dict[_id] = embed
@@ -173,7 +174,7 @@ class CTRTester:
         if self.exporter.exists():
             responses = self.exporter.read()
             progress = len(responses)
-            print(f'Start from {progress}')
+            logger.debug(f'Start from {progress}')
 
         source_set = self.processor.get_source_set(self.subset)
         data_gen = self.processor.generate(
@@ -233,8 +234,9 @@ class CTRTester:
             aggregator = CTRMetricsAggregator.build_from_config(self.config.metrics)
             results = aggregator(score_list, label_list, group_list)
 
+            logger.info(f'Evaluation results')
             for metric, value in results.items():
-                print(f'{metric}: {value:.4f}')
+                logger.info(f'{metric}: {value:.4f}')
 
     def evaluate(self):
         scores = self.exporter.read()
@@ -248,8 +250,9 @@ class CTRTester:
 
         results = aggregator(scores, labels, groups)
 
-        for metric, val in results.items():
-            print(f'{metric}: {val:.4f}')
+        logger.info(f'Evaluation results')
+        for metric, value in results.items():
+            logger.info(f'{metric}: {value:.4f}')
 
         self.exporter.save_metrics(results)
 

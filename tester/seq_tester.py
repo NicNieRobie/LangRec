@@ -9,6 +9,7 @@ from loader.seq_preparer import SeqPreparer
 from metrics.seq.seq_metrics_aggregator import SeqMetricsAggregator
 from model.seq.base_seq_model import BaseSeqModel
 from utils.dataloader import get_steps
+from loguru import logger
 
 
 class SeqTester:
@@ -80,8 +81,9 @@ class SeqTester:
         self.model.model.eval()
         with torch.no_grad():
             results = self._evaluate(test_dl, total_valid_steps)
+            logger.info(f'Evaluation results')
             for metric, value in results.items():
-                print(f'{metric}: {value:.4f}')
+                logger.info(f'{metric}: {value:.4f}')
 
     def __call__(self):
         if self.config.latency:

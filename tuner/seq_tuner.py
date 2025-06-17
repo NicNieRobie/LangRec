@@ -14,6 +14,7 @@ from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
 from tuner.tuner import Tuner
+from loguru import logger
 
 
 class SeqTuner(Tuner):
@@ -105,13 +106,13 @@ class SeqTuner(Tuner):
         self.model.model.eval()
 
         with torch.no_grad():
-            print(f'(epoch {epoch}) validating: {self.processor.dataset_name}')
+            logger.debug(f'[Epoch {epoch}] Validating on dataset {self.processor.dataset_name}')
 
             results = self._evaluate(valid_dl, total_valid_steps, step=self.config.valid_step)
             metric_name = list(results.keys())[0]
             metric_value = results[metric_name]
 
-            print(f'(epoch {epoch}) validation on {self.processor.dataset_name} dataset with {metric_name}: {metric_value:.4f}')
+            logger.debug(f'[Epoch {epoch}] {metric_name} on dataset {self.processor.dataset_name}: {metric_value:.4f}')
 
         self.model.model.train()
 
@@ -119,7 +120,7 @@ class SeqTuner(Tuner):
 
         if action is self.monitor.BEST:
             self.model.save(os.path.join(self.log_dir, f'{self.sign}.pt'))
-            print(f'Saving best model to {self.log_dir}/{self.sign}.pt')
+            logger.info(f'Saving best model to {self.log_dir}/{self.sign}.pt')
 
         return action
 

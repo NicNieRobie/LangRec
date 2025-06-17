@@ -1,3 +1,4 @@
+from loguru import logger
 from tqdm import tqdm
 
 from loader.code_map import CodeMap as Map
@@ -51,6 +52,6 @@ class CodePreparer(Preparer):
             data[Map.UID_COL] = self.uid_vocab.append(data[Map.UID_COL])
             data[Map.IID_COL] = self.iid_vocab.append(data[Map.IID_COL])
 
-        print(f'{self.processor.dataset_name} dataset: max_sequence_len: {max_sequence_len}')
+        logger.debug(f'{self.processor.dataset_name} dataset preprocessed, max_sequence_len: {max_sequence_len}')
 
         return datalist

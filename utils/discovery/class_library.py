@@ -3,6 +3,8 @@ import importlib
 import os
 from typing import TypeVar, Type, List
 
+from loguru import logger
+
 from data.ctr.base_ctr_processor import BaseCTRProcessor
 from data.drec.base_drec_processor import BaseDrecProcessor
 from data.seq.base_seq_processor import BaseSeqProcessor
@@ -43,7 +45,7 @@ class ClassDiscoverer:
                     ):
                         classes.append(obj)
             except ImportError as e:
-                print(f'Error importing module {module_path}: {e}')
+                logger.error(f'Error importing module {module_path}: {e}')
 
         return classes
 

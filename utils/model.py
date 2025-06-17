@@ -30,7 +30,3 @@ def match(key: str):
                 return variants_or_model
 
     return None
-
-
-if __name__ == "__main__":
-    print(match('P5BEAUTY'))
