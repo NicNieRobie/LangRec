@@ -11,8 +11,8 @@ from tqdm import tqdm
 from loader.discrete_code_preparer import DiscreteCodePreparer
 from loader.map import Map
 from loader.preparer import Preparer
-from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
 from model.base_model import BaseModel
+from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
 from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
@@ -55,7 +55,7 @@ class Tuner:
             lr=self.config.lr
         )
 
-        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.valid_metric)
+        self.metrics_aggregator = CTRMetricsAggregator.build_from_config([self.config.valid_metric])
 
         self.monitor = Monitor(metrics_aggregator=self.metrics_aggregator, patience=self.config.patience)
         self.latency_timer = Timer(activate=False)

@@ -10,6 +10,7 @@ from loader.drec_preparer import DrecPreparer
 from metrics.drec.drec_metrics_aggregator import DrecMetricsAggregator
 from model.drec.base_drec_model import BaseDrecModel
 from utils.code import get_code_indices
+from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
 from utils.tuner import Tuner
@@ -22,7 +23,8 @@ class DrecTuner(Tuner):
     num_codes: int
 
     def load_model(self):
-        _, code_list, self.num_codes = get_code_indices(self.config.code_path)
+        device = get_device(self.config.gpu)
+        _, code_list, self.num_codes = get_code_indices(self.config, device)
 
         models = ClassLibrary.models(self.config.task)
 
@@ -33,7 +35,7 @@ class DrecTuner(Tuner):
 
         assert issubclass(model, BaseDrecModel), f'{model} is not a subclass of BaseDrecModel'
 
-        return model(device=get_device(self.config.gpu), num_codes=self.num_codes, code_list=code_list)
+        return model(device=device, num_codes=self.num_codes, code_list=code_list)
 
     def load_data(self):
         preparer = self.PREPARER_CLASS(
@@ -97,7 +99,7 @@ class DrecTuner(Tuner):
         return results
 
     def evaluate(self, valid_dl, epoch):
-        total_valid_steps = self._get_steps(valid_dl)
+        total_valid_steps = get_steps(valid_dl)
 
         self.model.model.eval()
 

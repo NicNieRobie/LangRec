@@ -8,6 +8,7 @@ from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
 from utils.drec_tuner import DrecTuner
+from utils.drec_tester import DrecTester
 from utils.seq_tester import SeqTester
 from utils.seq_tuner import SeqTuner
 from utils.ctr_tester import CTRTester
@@ -27,8 +28,6 @@ class Runner:
         self.model_name = config.model.upper()
         self.dataset = config.dataset.upper()
 
-        self.config.code_path = os.path.join("encoding", f"{self.dataset.lower()}_{self.task}_id.json")
-
         self.processor: BaseProcessor = self.load_processor()
         self.processor.load()
 
@@ -45,13 +44,15 @@ class Runner:
         if self.config.task == 'seq':
             return SeqTuner(self.config, self.processor)
         elif self.config.task == 'drec':
-            self.tuner = DrecTuner(self.config, self.processor)
+            return DrecTuner(self.config, self.processor)
         else:
             return Tuner(self.config, self.processor)
 
     def _init_tester(self):
         if self.config.task == 'seq':
             return SeqTester(self.config, self.processor, self.model)
+        elif self.config.task == 'drec':
+            return DrecTester(self.config, self.processor, self.model)
         else:
             return CTRTester(self.config, self.processor, self.model)
 
@@ -96,15 +97,19 @@ class Runner:
         if self.config.mode in ["finetune", "testtune"]:
             with OfflineEmissionsTracker(
                 country_iso_code="RUS",
-                output_dir=os.path.join("emissions", f"{self.model_name}_{self.dataset}_{self.task}"),
-                output_file="finetune_emissions"
+                output_file=os.path.join(
+                    "emissions",
+                    f"{self.model_name}_{self.dataset}_{self.task}_{self.config.code_type}_finetune_emissions.csv"
+                ),
             ) as tracker:
                 self.tuner()
 
         if self.config.mode in ["test", "testtune"]:
             with OfflineEmissionsTracker(
                 country_iso_code="RUS",
-                output_dir=os.path.join("emissions", f"{self.model_name}_{self.dataset}_{self.task}"),
-                output_file="finetune_emissions"
+                output_file=os.path.join(
+                    "emissions",
+                    f"{self.model_name}_{self.dataset}_{self.task}_{self.config.code_type}_test_emissions.csv"
+                ),
             ) as tracker:
                 self.tester()
