@@ -77,9 +77,9 @@ class CTRTuner(Tuner):
         if issubclass(model, BaseDiscreteCodeModel):
             _, _, num_codes = get_code_indices(self.config, device)
 
-            return model(device=device, num_codes=num_codes).load()
+            return model(device=device, num_codes=num_codes, task=self.config.task).load()
         else:
-            return model(device=device).load()
+            return model(device=device, task=self.config.task).load()
 
     def evaluate(self, valid_dl, epoch):
         total_valid_steps = get_steps(valid_dl)

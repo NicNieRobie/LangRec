@@ -86,9 +86,9 @@ class Runner:
         if issubclass(model, BaseSeqModel):
             _, code_list, num_codes = get_code_indices(self.config, device)
 
-            return model(device=device, num_codes=num_codes, code_list=code_list).load()
+            return model(device=device, num_codes=num_codes, code_list=code_list, task=self.task).load()
         else:
-            return model(device=device).load()
+            return model(device=device, task=self.task).load()
 
     def get_device(self):
         if self.config.gpu is None:

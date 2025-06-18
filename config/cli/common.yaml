@@ -20,6 +20,7 @@ arguments:
       - BERTBASE
       - BERTLARGE
       - BERTBASE_DC
+      - BERTBASESEQ
       - P5BEAUTY_SMALL
       - P5BEAUTY_BASE
   dataset:

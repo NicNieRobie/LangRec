@@ -1,5 +1,6 @@
 import os
 import subprocess
+from glob import glob
 
 from utils.argparser import ArgParser
 from utils.auth import DATASPHERE_PROJ
@@ -76,7 +77,8 @@ def run_job(task_config_path):
 
 
 if __name__ == "__main__":
-    cli_config_path = os.environ.get('CLI_CONFIG_PATH', 'config/cli/cli_config.yaml')
+    cli_config_path = set(glob(os.path.join('config', 'cli', '*.yaml'))) - set(
+        glob(os.path.join('config', 'cli', '*_config.yaml')))
     arg_parser = ArgParser(cli_config_path)
     config = arg_parser.parse_args()
 

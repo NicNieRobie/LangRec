@@ -4,29 +4,20 @@ with open('config/model_config.yaml', 'r') as f:
     model_config = yaml.safe_load(f)
 
 
-def match(key: str):
-    key = key.strip().lower()
+def match(key: str, task: str):
+    key_normalized = key.strip().upper()
+    task_normalized = task.strip()
 
-    for model_name, variants_or_model in model_config.items():
-        model_name_lower = model_name.lower()
+    model_entry = model_config.get(key_normalized)
+    if model_entry is None:
+        return {}
 
-        if isinstance(variants_or_model, dict):
-            for variant, value in variants_or_model.items():
-                variant_str = str(variant).lower()
-                combined_key = f"{model_name_lower}{variant_str}"
+    if isinstance(model_entry, list):
+        for entry in model_entry:
+            if str(entry.get("task", "")).strip() == task_normalized:
+                return entry
+    elif isinstance(model_entry, dict):
+        if str(model_entry.get("task", "")).strip() == task_normalized:
+            return model_entry
 
-                if combined_key == key:
-                    if isinstance(value, dict):
-                        keys = set(value.keys())
-
-                        if len(keys) > 1:
-                            return value
-
-                        return value.get("path") or value.get("model_id") or value
-                    return value
-
-        else:
-            if model_name_lower == key:
-                return variants_or_model
-
-    return None
+    return {}

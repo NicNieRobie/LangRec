@@ -17,10 +17,12 @@ class BaseModel:
     BIT: int
     PEFT_TARGET_MODULES = ['q_proj', 'v_proj', 'query', 'value']
 
-    def __init__(self, device):
+    def __init__(self, device, task):
         self.device = device
 
-        self.key = match(self.get_name()) or self.KEY
+        self.params = match(self.get_name(), task)
+
+        self.key = self.params.get('key') or self.KEY
 
         self.parallel = False
 

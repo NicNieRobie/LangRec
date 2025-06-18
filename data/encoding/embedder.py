@@ -38,7 +38,7 @@ class Embedder:
 
         model = models[self.model_name]
 
-        return model(device=self.device).load()
+        return model(device=self.device, task=self.task).load()
 
     def _embed(self):
         if os.path.exists(self.embedding_path):
