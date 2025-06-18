@@ -140,7 +140,7 @@ class DataSphereJobOrchestrator:
     def run(self):
         try:
             while not self.exit_event.is_set():
-                while len(self.running_procs) < MAX_CONCURRENT_JOBS and self.state["pending"]:
+                while len(self.running_procs) < MAX_CONCURRENT_JOBS and len(self.state['running']) < MAX_CONCURRENT_JOBS and self.state["pending"]:
                     params_dict = self.state["pending"].pop(0)
                     self._launch_job(params_dict['args'])
 
