@@ -7,9 +7,7 @@ arguments:
     choices:
       - SENTENCEBERT
       - SENTENCET5
-      - QWEN2_0_5B
       - QWEN2_1_5B
-      - QWEN2_7B
       - QWEN2_5_7B
       - MISTRAL7B
       - LLAMA3_1
