@@ -166,24 +166,31 @@ class BaselineRunner:
             mode = 'full'
             return ['user_id','item_id'], metrics, mode
 
+    def set_representation(self):
+        if self.representation == 'sem_id':
+            return ['item_id', 'label_emb']
+        return None
+
     def run(self):
         cols, metrics, mode = self.set_task()
+
+        item_cols = self.set_representation()
 
         task = 'prediction'
         if self.task == 'seq' or self.task == 'drec': task = 'ranking'
 
         parameter_dict = {
             'dataset': self.dataset,
-            'data_path': f'dataset_inter/{self.representation}/{self.task}',
-            'inter_file': self.dataset,
-            'load_col': {'inter': cols},
+            'data_path': f'dataset_inter/{self.representation}/{self.task}/',
+            'inter_file': f'{self.dataset}',
+            'load_col': {'inter': cols, 'item': item_cols} if item_cols else {'inter': cols},
             'model': self.config.model,
             'epochs': self.config.epochs,
             'train_batch_size': 2048,
             'eval_batch_size': 4096,
             'eval_args': {
                 'split': {'RS': [0.8, 0.1, 0.1]},
-                'order': 'TO' if self.task == 'seq' or self.task == 'drec' else 'RO',
+                'order': 'TO' if self.task == 'seq' else 'RO',
                 'mode': mode
             },
             'metrics': metrics,
@@ -192,8 +199,14 @@ class BaselineRunner:
             'show_progress': True,
         }
 
+        parameter_dict['item_file'] = f'{self.dataset}'
+
         if self.task == 'seq' or self.task == 'drec':
             parameter_dict['train_neg_sample_args'] = None
+
+
+            parameter_dict['USER_ID_FIELD'] = 'user_id'
+            parameter_dict['ITEM_ID_FIELD'] = 'item_id'
 
         train_data, valid_data, test_data, config, dataset = self.get_data(parameter_dict)
 
