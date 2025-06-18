@@ -12,7 +12,6 @@ arguments:
       - MISTRAL7B
       - LLAMA3_1
       - LLAMA3_1_DC
-      - LLAMATULU_3_1
       - BERTBASE
       - BERTLARGE
       - BERTBASE_DC

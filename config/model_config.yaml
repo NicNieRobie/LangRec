@@ -29,23 +29,6 @@ LLAMA3_1:
     type: encoding
     kind: large
 
-LLAMATULU_3_1:
-  - key: allenai/Llama-3.1-Tulu-3.1-8B
-    task: ctr
-    finetune: true
-    type: prompt
-    kind: large
-  - key: allenai/Llama-3.1-Tulu-3.1-8B
-    task: seq
-    finetune: true
-    type: encoding
-    kind: large
-  - key: allenai/Llama-3.1-Tulu-3.1-8B
-    task: drec
-    finetune: true
-    type: encoding
-    kind: large
-
 LLAMA3_1_DC:
   key: meta-llama/Llama-3.1-8B
   task: ctr
