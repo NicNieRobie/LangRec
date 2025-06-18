@@ -12,6 +12,7 @@ from metrics.ctr.base_ctr_metric import BaseCTRMetric
 from metrics.drec.base_drec_metric import BaseDrecMetric
 from metrics.seq.base_seq_metric import BaseSeqMetric
 from model.ctr.base_model import BaseCTRModel
+from model.ctr.sbert_model import SentenceBertModel
 from model.drec.base_drec_model import BaseDrecModel
 from model.seq.base_seq_model import BaseSeqModel
 
@@ -131,6 +132,12 @@ class ClassLibrary:
         }[task]
 
         return ClassLibraryFactory.create_library(base_class, path, 'processor')
+
+    @staticmethod
+    def sentence_models():
+        path = os.path.sep.join(['model', 'ctr'])
+
+        return ClassLibraryFactory.create_library(SentenceBertModel, path, 'model')
 
     @staticmethod
     def models(task: str = "ctr"):

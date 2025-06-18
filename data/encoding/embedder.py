@@ -31,14 +31,14 @@ class Embedder:
         self.embedding_path = os.path.join(self.log_dir, f'{self.model_name}-embeds-{self.task}.npy')
 
     def _load_model(self):
-        models = ClassLibrary.models()
+        models = ClassLibrary.sentence_models()
 
         if self.model_name not in models:
-            raise ValueError(f'Unknown model: {self.model_name}')
+            raise ValueError(f'Unknown sentence model: {self.model_name}')
 
         model = models[self.model_name]
 
-        return model(device=self.device, task=self.task).load()
+        return model(device=self.device, task=None).load()
 
     def _embed(self):
         if os.path.exists(self.embedding_path):

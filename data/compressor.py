@@ -35,6 +35,6 @@ class Compressor:
         self.items.to_parquet(os.path.join(self.store_dir, 'items.parquet'))
 
         self.state.compressed = True
-        self.state.write_scores()
+        self.state.write()
 
         return True

@@ -27,9 +27,13 @@ class DataSphereJobOrchestrator:
     def stage_jobs(self, pending_jobs):
         jobs_data = self.state['jobs_data']
         success_job_ids = [k for k, v in self.state['finished'].items() if v['success']]
-        success_args_list = set([jobs_data.get(job_id).get('args') for job_id in success_job_ids if job_id in jobs_data])
+        success_args_list = set(
+            [jobs_data.get(job_id).get('args') for job_id in success_job_ids if job_id in jobs_data])
 
         jobs_to_be_added = [entry for entry in pending_jobs if entry['args'] not in success_args_list]
+
+        logger.info(
+            f"{len(pending_jobs) - len(jobs_to_be_added)} jobs have already been successfully finished and won't be run again")
 
         self.state['pending'].extend(jobs_to_be_added)
 
@@ -140,7 +144,8 @@ class DataSphereJobOrchestrator:
     def run(self):
         try:
             while not self.exit_event.is_set():
-                while len(self.running_procs) < MAX_CONCURRENT_JOBS and len(self.state['running']) < MAX_CONCURRENT_JOBS and self.state["pending"]:
+                while len(self.running_procs) < MAX_CONCURRENT_JOBS and len(
+                        self.state['running']) < MAX_CONCURRENT_JOBS and self.state["pending"]:
                     params_dict = self.state["pending"].pop(0)
                     self._launch_job(params_dict['args'])
 
