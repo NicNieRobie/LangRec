@@ -11,6 +11,8 @@ from model.seq.base_seq_model import BaseSeqModel
 from utils.dataloader import get_steps
 from loguru import logger
 
+from utils.timer import Timer
+
 
 class SeqTester:
     def __init__(self, config, processor, model):
@@ -20,6 +22,8 @@ class SeqTester:
         self.config = config
 
         self.num_codes = model.num_codes
+
+        self.latency_timer = Timer(activate=False)
 
     def _evaluate(self, dataloader, steps, step=1):
         search_mode = self.config.search_mode
@@ -33,9 +37,9 @@ class SeqTester:
             if random.random() * step > 1:
                 continue
 
-            # self.latency_timer.run('test')
+            self.latency_timer.run('test')
             output = self.model.decode(batch, search_width=self.config.search_width, search_mode=search_mode)
-            # self.latency_timer.run('test')
+            self.latency_timer.run('test')
 
             if search_mode == 'prod':
                 rank = (cast(torch.Tensor, output) + 1).tolist()
@@ -59,6 +63,10 @@ class SeqTester:
             prod_mode=search_mode == 'prod'
         )
         results = aggregator(ranks_list, group_list)
+
+        latency_st = self.latency_timer.status_dict["test"]
+        results['Avg inference time'] = latency_st.avgms()
+        results['Total steps'] = latency_st.count
 
         return results
 
@@ -86,8 +94,10 @@ class SeqTester:
                 logger.info(f'{metric}: {value:.4f}')
 
     def __call__(self):
-        if self.config.latency:
-            # TODO
-            return
+        self.latency_timer.activate()
+        self.latency_timer.clear()
 
         self.evaluate()
+
+        st = self.latency_timer.status_dict["test"]
+        logger.debug(f'Total {st.count} steps, avg ms {st.avgms():.4f}')

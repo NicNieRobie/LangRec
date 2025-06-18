@@ -263,10 +263,6 @@ class CTRTester:
         self.exporter.save_metrics(results)
 
     def __call__(self):
-        if self.config.latency:
-            # TODO
-            return
-
         self.latency_timer.activate()
         self.latency_timer.clear()
 

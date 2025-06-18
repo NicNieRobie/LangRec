@@ -12,15 +12,12 @@ arguments:
       - QWEN2_7B
       - QWEN2_5_7B
       - MISTRAL7B
-      - PHI3_7B
-      - RECGPT7B
       - LLAMA3_1
       - LLAMA3_1_DC
       - LLAMATULU_3_1
       - BERTBASE
       - BERTLARGE
       - BERTBASE_DC
-      - BERTBASESEQ
       - P5BEAUTY_SMALL
       - P5BEAUTY_BASE
   dataset:
