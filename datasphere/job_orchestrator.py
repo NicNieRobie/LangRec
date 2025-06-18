@@ -11,7 +11,7 @@ from datasphere.utils.cmd import run_cmd
 from datasphere.utils.telegram_notify import send_telegram_message, NotificationType
 
 STATE_FILE = os.path.join('datasphere_data', 'jobs_state.json')
-MAX_CONCURRENT_JOBS = 3
+MAX_CONCURRENT_JOBS = 6
 POLL_INTERVAL = 30
 
 
