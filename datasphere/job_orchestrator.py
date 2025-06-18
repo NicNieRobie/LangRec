@@ -25,10 +25,9 @@ class DataSphereJobOrchestrator:
         self.exit_event = threading.Event()
 
     def stage_jobs(self, pending_jobs):
-        jobs_data = self.state['jobs_data']
-        success_job_ids = [k for k, v in self.state['finished'].items() if v['success']]
-        success_args_list = set(
-            [jobs_data.get(job_id).get('args') for job_id in success_job_ids if job_id in jobs_data])
+        self.state['pending'].clear()
+
+        success_args_list = self._get_successful_jobs_args()
 
         jobs_to_be_added = [entry for entry in pending_jobs if entry['args'] not in success_args_list]
 
@@ -121,7 +120,20 @@ class DataSphereJobOrchestrator:
 
         logger.info("All jobs terminated.")
 
+    def _get_successful_jobs_args(self):
+        jobs_data = self.state['jobs_data']
+        success_job_ids = [k for k, v in self.state['finished'].items() if v['success']]
+        success_args_list = set(
+            [jobs_data.get(job_id).get('args') for job_id in success_job_ids if job_id in jobs_data])
+
+        return success_args_list
+
     def _launch_job(self, args: str):
+        success_args_list = self._get_successful_jobs_args()
+
+        if args in success_args_list:
+            logger.info(f'Job with args {args} already finished successfully, skipping')
+
         result = self.runner.run_job(args)
 
         if result['success']:
