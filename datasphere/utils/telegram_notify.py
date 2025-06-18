@@ -19,20 +19,20 @@ Link: https://datasphere.yandex.cloud/communities/{datasphere_com}/projects/{dat
 """
 
 ERROR_LAUNCH_MESSAGE_TEMPLATE = """
-⚠️*Failed to run job for task* `{task_id}`
+⚠️ *Failed to run job for task* `{task_id}`
 
 Error: **{error}**
 """
 
 ERROR_RUN_MESSAGE_TEMPLATE = """
-⚠️*Job* `{job_id}` *failed to run*
+⚠️ *Job* `{job_id}` *failed to run*
 
 Task ID: `{task_id}`
 Link: https://datasphere.yandex.cloud/communities/{datasphere_com}/projects/{datasphere_proj}/job/{job_id}
 """
 
 SUCCESS_MESSAGE_TEMPLATE = """
-*Job* `{job_id}` *finished successfully*
+✅️ *Job* `{job_id}` *finished successfully*
 
 Task ID: `{task_id}`
 Link: https://datasphere.yandex.cloud/communities/{datasphere_com}/projects/{datasphere_proj}/job/{job_id}
@@ -57,6 +57,7 @@ def send_telegram_message(notification_type: NotificationType, data):
     elif notification_type == NotificationType.ERROR_RUN:
         message = ERROR_RUN_MESSAGE_TEMPLATE.format(
             job_id=data.get('job_id'),
+            task_id=data.get('task_id'),
             datasphere_com=DATASPHERE_COM,
             datasphere_proj=DATASPHERE_PROJ
         )

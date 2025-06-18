@@ -16,7 +16,7 @@ class Compressor:
         if self.state.compressed:
             return False
 
-        if self.interactions:
+        if self.interactions is not None:
             user_set = set(self.interactions[self.user_id_col].unique())
             self.users = self.users[self.users[self.user_id_col].isin(user_set)].drop_duplicates(
                 subset=[self.user_id_col]
@@ -29,12 +29,12 @@ class Compressor:
         self.users[self.history_col].apply(lambda x: [item_set.add(i) for i in x])
         self.items = self.items[self.items[self.item_id_col].isin(item_set)].reset_index(drop=True)
 
-        if self.interactions:
+        if self.interactions is not None:
             self.users.to_parquet(os.path.join(self.store_dir, 'users.parquet'))
 
         self.items.to_parquet(os.path.join(self.store_dir, 'items.parquet'))
 
         self.state.compressed = True
-        self.state.write_scores()
+        self.state.write()
 
         return True

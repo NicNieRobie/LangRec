@@ -27,7 +27,7 @@ def build_args_list(model_cfg, mode):
         if valid_metric:
             base += f' --valid_metric {valid_metric}'
         if code_type:
-            base += f' --code_type {code_type}'
+            base += f' --code_type {code_type} --rqvae_epochs 250'
         if mode == 'testtune':
             base += ' --use_lora'
 

@@ -3,6 +3,7 @@ import os
 from codecarbon import OfflineEmissionsTracker
 
 from data.base_processor import BaseProcessor
+from model.drec.base_drec_model import BaseDrecModel
 from model.seq.base_seq_model import BaseSeqModel
 from tester.ctr_tester import CTRTester
 from tester.seq_tester import SeqTester
@@ -83,7 +84,7 @@ class Runner:
         model = models[self.model_name]
         device = self.get_device()
 
-        if issubclass(model, BaseSeqModel):
+        if issubclass(model, BaseSeqModel) or issubclass(model, BaseDrecModel):
             _, code_list, num_codes = get_code_indices(self.config, device)
 
             return model(device=device, num_codes=num_codes, code_list=code_list, task=self.task).load()

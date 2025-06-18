@@ -6,6 +6,8 @@ arguments:
     type: str
     choices:
       - MOVIELENS
+      - STEAM
+      - GOODREADS
   model:
     help: Model name
     required: true
@@ -34,9 +36,10 @@ arguments:
     required: false
     type: str
     choices:
-      - CTR
-      - SEQ
-    default: SEQ
+      - ctr
+      - seq
+      - drec
+    default: seq
   rqvae_attrs:
     help: Comma-separated list of item features to be included
     required: false
@@ -171,4 +174,11 @@ arguments:
     help: The number of GPU to use. Enter -1 to use CPU.
     required: false
     type: int
-
+  enc_model:
+    help: Model used for encoding semantic IDs
+    required: false
+    type: str
+    choices:
+      - SENTENCEBERT
+      - SENTENCET5
+    default: SENTENCET5

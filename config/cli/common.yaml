@@ -7,14 +7,11 @@ arguments:
     choices:
       - SENTENCEBERT
       - SENTENCET5
-      - QWEN2_0_5B
       - QWEN2_1_5B
-      - QWEN2_7B
       - QWEN2_5_7B
       - MISTRAL7B
       - LLAMA3_1
       - LLAMA3_1_DC
-      - LLAMATULU_3_1
       - BERTBASE
       - BERTLARGE
       - BERTBASE_DC

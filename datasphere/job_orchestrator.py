@@ -11,7 +11,7 @@ from datasphere.utils.cmd import run_cmd
 from datasphere.utils.telegram_notify import send_telegram_message, NotificationType
 
 STATE_FILE = os.path.join('datasphere_data', 'jobs_state.json')
-MAX_CONCURRENT_JOBS = 3
+MAX_CONCURRENT_JOBS = 6
 POLL_INTERVAL = 30
 
 
@@ -25,11 +25,14 @@ class DataSphereJobOrchestrator:
         self.exit_event = threading.Event()
 
     def stage_jobs(self, pending_jobs):
-        jobs_data = self.state['jobs_data']
-        success_job_ids = [k for k, v in self.state['finished'].items() if v['success']]
-        success_args_list = set([jobs_data.get(job_id).get('args') for job_id in success_job_ids if job_id in jobs_data])
+        self.state['pending'].clear()
+
+        success_args_list = self._get_successful_jobs_args()
 
         jobs_to_be_added = [entry for entry in pending_jobs if entry['args'] not in success_args_list]
+
+        logger.info(
+            f"{len(pending_jobs) - len(jobs_to_be_added)} jobs have already been successfully finished and won't be run again")
 
         self.state['pending'].extend(jobs_to_be_added)
 
@@ -117,7 +120,20 @@ class DataSphereJobOrchestrator:
 
         logger.info("All jobs terminated.")
 
+    def _get_successful_jobs_args(self):
+        jobs_data = self.state['jobs_data']
+        success_job_ids = [k for k, v in self.state['finished'].items() if v['success']]
+        success_args_list = set(
+            [jobs_data.get(job_id).get('args') for job_id in success_job_ids if job_id in jobs_data])
+
+        return success_args_list
+
     def _launch_job(self, args: str):
+        success_args_list = self._get_successful_jobs_args()
+
+        if args in success_args_list:
+            logger.info(f'Job with args {args} already finished successfully, skipping')
+
         result = self.runner.run_job(args)
 
         if result['success']:
@@ -140,7 +156,8 @@ class DataSphereJobOrchestrator:
     def run(self):
         try:
             while not self.exit_event.is_set():
-                while len(self.running_procs) < MAX_CONCURRENT_JOBS and self.state["pending"]:
+                while len(self.running_procs) < MAX_CONCURRENT_JOBS and len(
+                        self.state['running']) < MAX_CONCURRENT_JOBS and self.state["pending"]:
                     params_dict = self.state["pending"].pop(0)
                     self._launch_job(params_dict['args'])
 
@@ -159,7 +176,7 @@ class DataSphereJobOrchestrator:
                         task_id = self.state["jobs_data"].get(job_id).get("task_id")
                         send_telegram_message(
                             NotificationType.SUCCESS,
-                            {'job_id', job_id, 'task_id', task_id}
+                            {'job_id': job_id, 'task_id': task_id}
                         )
                     elif status == "ERROR":
                         logger.warning(f"Job {job_id} exited with error.")
@@ -169,8 +186,8 @@ class DataSphereJobOrchestrator:
                         })
                         task_id = self.state["jobs_data"].get(job_id).get("task_id")
                         send_telegram_message(
-                            NotificationType.SUCCESS,
-                            {'job_id', job_id, 'task_id', task_id}
+                            NotificationType.ERROR_RUN,
+                            {'job_id': job_id, 'task_id': task_id}
                         )
 
                 for entry in finished_jobs:
