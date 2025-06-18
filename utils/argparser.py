@@ -1,4 +1,5 @@
 import os.path
+import shlex
 import sys
 
 from typing import Union
@@ -8,9 +9,9 @@ import yaml
 import argparse
 
 class ArgParser:
-    def __init__(self, config_path):
+    def __init__(self, config_path, validate_input=True):
         self.config = self._load_config(config_path)
-        self.parser = self._init_parser()
+        self.parser = self._init_parser(validate_input)
 
         self.__args_str = None
 
@@ -44,7 +45,7 @@ class ArgParser:
         else:
             return ArgParser._load_config_from_file(config_path)
 
-    def _init_parser(self):
+    def _init_parser(self, validate_input):
         parser = argparse.ArgumentParser(description=self.config.get('description', ''))
 
         for arg_name, arg_config in self.config.get('arguments', {}).items():
@@ -52,7 +53,7 @@ class ArgParser:
 
             kwargs = {
                 'help': arg_config.get('help', ''),
-                'required': arg_config.get('required', False)
+                'required': validate_input & arg_config.get('required', False)
             }
 
             arg_type = arg_config.get('type', 'str')
@@ -81,10 +82,14 @@ class ArgParser:
 
         return parser
 
-    def parse_args(self):
-        self.__args_str = ' '.join(sys.argv[1:])
-
-        return self.parser.parse_args()
+    def parse_args(self, args_str=None):
+        if args_str:
+            self.__args_str = args_str
+            args_list = shlex.split(args_str)
+            return self.parser.parse_args(args_list)
+        else:
+            self.__args_str = ' '.join(sys.argv[1:])
+            return self.parser.parse_args()
 
     @property
     def args_str(self):

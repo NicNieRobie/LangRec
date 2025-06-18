@@ -14,4 +14,4 @@ inputs:
   - model_files/
 outputs:
   - export/
-cloud-instance-type: g1.1
+cloud-instance-type: c1.4

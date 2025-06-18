@@ -2,24 +2,18 @@ import os.path
 import sys
 
 import numpy as np
-import torch
-from recbole.model.context_aware_recommender import DeepFM
-from recbole.quick_start import run_recbole
-from setuptools.command.setopt import config_file
+import pandas as pd
 from recbole.config import Config
 from recbole.data import create_dataset
+from recbole.data import data_preparation
+from recbole.model.context_aware_recommender import DeepFM
 from recbole.model.general_recommender import BPR
+from recbole.model.sequential_recommender import SASRec
 from recbole.trainer import Trainer
-from data.base_processor import BaseProcessor
-from utils import bars
-from utils.discovery.class_library import ClassLibrary
-from utils.exporter import Exporter
-from utils.gpu import GPU
 
 from metrics.base_metrics_aggregator import BaseMetricsAggregator
-from recbole.data import data_preparation
-from recbole.model.sequential_recommender import SASRec
-import pandas as pd
+from utils.discovery.class_library import ClassLibrary
+from utils.export_writer import ExportWriter
 
 
 class BaselineRunner:
@@ -45,7 +39,7 @@ class BaselineRunner:
 
         os.makedirs(self.log_dir, exist_ok=True)
 
-        self.exporter = Exporter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}.dat'))
+        self.exporter = ExportWriter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}.dat'))
 
         if self.config.rerun:
             self.exporter.reset()
@@ -108,7 +102,7 @@ class BaselineRunner:
         return None
 
     def evaluate(self):
-        scores = self.exporter.read()
+        scores = self.exporter.read_scores()
 
         source_set = self.processor.get_source_set(self.config.source)
 

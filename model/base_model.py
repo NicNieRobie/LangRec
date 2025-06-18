@@ -17,10 +17,12 @@ class BaseModel:
     BIT: int
     PEFT_TARGET_MODULES = ['q_proj', 'v_proj', 'query', 'value']
 
-    def __init__(self, device):
+    def __init__(self, device, task):
         self.device = device
 
-        self.key = match(self.get_name()) or self.KEY
+        self.params = match(self.get_name(), task)
+
+        self.key = self.params.get('key') or self.KEY
 
         self.parallel = False
 
@@ -148,7 +150,7 @@ class BaseModel:
         self.use_lora = True
 
         logger.info(f'Finetuning {self.get_name()} model with lora ({conf.lora_r}, {conf.lora_alpha}, {conf.lora_dropout})')
-        logger.debug('tune_from:', tune_from)
+        logger.debug(f'tune_from: {tune_from}')
 
         transformer_layers = []
         for name, _ in self.model.named_modules():

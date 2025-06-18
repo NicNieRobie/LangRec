@@ -19,7 +19,7 @@ class P5Model(BaseCTRModel, abc.ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.backbone, self.key = self.key['backbone'], self.key['path']
+        self.backbone, self.key = self.params['backbone'], self.params['path']
 
         self.max_len = 512
         config = T5Config.from_pretrained(self.backbone)

@@ -20,6 +20,7 @@ arguments:
       - BERTBASE
       - BERTLARGE
       - BERTBASE_DC
+      - BERTBASESEQ
       - P5BEAUTY_SMALL
       - P5BEAUTY_BASE
   dataset:
@@ -98,3 +99,7 @@ arguments:
     required: false
     type: int
     default: 4141
+  run_name:
+    help: The name of the run.
+    required: false
+    type: str

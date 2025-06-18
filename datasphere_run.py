@@ -1,23 +1,10 @@
-import hashlib
 import os
 import subprocess
+from glob import glob
 
 from utils.argparser import ArgParser
 from utils.auth import DATASPHERE_PROJ
-
-PREFIX = 'LANGREC'
-
-MODE_NAMES = {
-    'finetune': 'FTN',
-    'test': 'TST',
-    'testtune': 'TTN'
-}
-
-DATASET_NAMES = {
-    'MOVIELENS': 'MOVIE',
-    'STEAM': 'STEAM',
-    'GOODREADS': 'GOOD'
-}
+from utils.run import generate_run_name_and_hash
 
 
 def run_cmd(cmd: list[str]):
@@ -51,17 +38,7 @@ def fetch_finished_jobs():
 
 
 def generate_job_config(args):
-    args_hash = get_args_hash(args)
-
-    task_name = '_'.join([
-        PREFIX,
-        args.task,
-        DATASET_NAMES[args.dataset],
-        args.model,
-        MODE_NAMES[args.mode],
-        args.task,
-        args_hash
-    ]).upper()
+    task_name, task_hash = generate_run_name_and_hash(args)
 
     print('Task name:', task_name)
 
@@ -77,12 +54,12 @@ def generate_job_config(args):
 
     os.makedirs(task_config_dir, exist_ok=True)
 
-    task_config_name = f'datasphere_{args_hash}.yaml'
+    task_config_name = f'datasphere_{task_hash}.yaml'
     task_config_path = os.path.join(task_config_dir, task_config_name)
 
     with open(task_config_path, 'w', encoding='utf-8') as f:
         f.write(config)
-        print(f'Task generated with hash {str(args_hash)}')
+        print(f'Task generated with hash {str(task_hash)}')
 
     return task_name, task_config_path
 
@@ -99,16 +76,9 @@ def run_job(task_config_path):
         print(line, end='')
 
 
-def get_args_hash(args) -> str:
-    args_dict = vars(args)
-    sorted_items = sorted(args_dict.items())
-    string_repr = repr(sorted_items)
-
-    return hashlib.md5(string_repr.encode()).hexdigest()[:8]
-
-
 if __name__ == "__main__":
-    cli_config_path = os.environ.get('CLI_CONFIG_PATH', 'config/cli/cli_config.yaml')
+    cli_config_path = set(glob(os.path.join('config', 'cli', '*.yaml'))) - set(
+        glob(os.path.join('config', 'cli', '*_config.yaml')))
     arg_parser = ArgParser(cli_config_path)
     config = arg_parser.parse_args()
 

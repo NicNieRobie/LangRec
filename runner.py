@@ -15,6 +15,8 @@ from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
 from loguru import logger
 
+from utils.run import generate_run_name_and_hash
+
 
 class Runner:
     def __init__(self, config):
@@ -28,6 +30,11 @@ class Runner:
 
         self.model_name = config.model.upper()
         self.dataset = config.dataset.upper()
+
+        if self.config.run_name is None:
+            self.run_name, _ = generate_run_name_and_hash(self.config)
+        else:
+            self.run_name = self.config.run_name
 
         self.processor: BaseProcessor = self.load_processor()
         self.processor.load()
@@ -55,7 +62,7 @@ class Runner:
         elif self.config.task == 'drec':
             return DrecTester(self.config, self.processor, self.model)
         else:
-            return CTRTester(self.config, self.processor, self.model)
+            return CTRTester(self.config, self.processor, self.model, self.run_name)
 
     def load_processor(self, data_path=None):
         processors = ClassLibrary.processors(self.task)
@@ -79,9 +86,9 @@ class Runner:
         if issubclass(model, BaseSeqModel):
             _, code_list, num_codes = get_code_indices(self.config, device)
 
-            return model(device=device, num_codes=num_codes, code_list=code_list).load()
+            return model(device=device, num_codes=num_codes, code_list=code_list, task=self.task).load()
         else:
-            return model(device=device).load()
+            return model(device=device, task=self.task).load()
 
     def get_device(self):
         if self.config.gpu is None:
@@ -95,15 +102,19 @@ class Runner:
         return f'CUDA: {self.config.gpu}'
 
     def run(self):
+        export_dir = os.path.join('export', self.run_name)
+
+        os.makedirs(export_dir, exist_ok=True)
+
         if self.config.mode in ["finetune", "testtune"]:
             with OfflineEmissionsTracker(
                 country_iso_code="RUS",
                 log_level="ERROR",
                 output_file=os.path.join(
-                    "emissions",
-                    f"{self.model_name}_{self.dataset}_{self.task}_{self.config.code_type}_finetune_emissions.csv"
+                    export_dir,
+                    "emissions.csv"
                 ),
-            ) as tracker:
+            ) as _:
                 self.tuner()
 
         if self.config.mode in ["test", "testtune"]:
@@ -111,8 +122,8 @@ class Runner:
                 country_iso_code="RUS",
                 log_level="ERROR",
                 output_file=os.path.join(
-                    "emissions",
-                    f"{self.model_name}_{self.dataset}_{self.task}_{self.config.code_type}_test_emissions.csv"
+                    export_dir,
+                    "test_emissions.csv"
                 ),
-            ) as tracker:
+            ) as _:
                 self.tester()

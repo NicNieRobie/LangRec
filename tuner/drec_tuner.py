@@ -41,7 +41,7 @@ class DrecTuner(Tuner):
 
         assert issubclass(model, BaseDrecModel), f'{model} is not a subclass of BaseDrecModel'
 
-        return model(device=device, num_codes=self.num_codes, code_list=code_list)
+        return model(device=device, num_codes=self.num_codes, code_list=code_list, task=self.config.task)
 
     def load_data(self):
         preparer = self.PREPARER_CLASS(
