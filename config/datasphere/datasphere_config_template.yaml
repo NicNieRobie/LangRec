@@ -10,7 +10,6 @@ inputs:
   - config/
   - data_store/
   - encoding/
-  - ckpt/
   - model_files/
 outputs:
   - export/
