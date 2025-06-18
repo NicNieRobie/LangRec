@@ -57,6 +57,7 @@ def send_telegram_message(notification_type: NotificationType, data):
     elif notification_type == NotificationType.ERROR_RUN:
         message = ERROR_RUN_MESSAGE_TEMPLATE.format(
             job_id=data.get('job_id'),
+            task_id=data.get('task_id'),
             datasphere_com=DATASPHERE_COM,
             datasphere_proj=DATASPHERE_PROJ
         )
