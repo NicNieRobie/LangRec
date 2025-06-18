@@ -16,8 +16,8 @@ class GoodReadsProcessor(TimedInteractionProcessor):
 
     POS_SAMPLE_COUNT = 2
 
-    NUM_TEST = 20_000
-    NUM_FINETUNE = 100_000
+    NUM_TEST = 10_000
+    NUM_FINETUNE = 80_000
 
     CAST_TO_STRING = True
 
