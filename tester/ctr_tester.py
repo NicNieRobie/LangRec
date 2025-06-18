@@ -13,6 +13,8 @@ from utils.export_writer import ExportWriter
 from utils.metrics import get_metrics_aggregator
 from loguru import logger
 
+from utils.timer import Timer
+
 
 class CTRTester:
     def __init__(self, config, processor, model, run_name):
@@ -26,7 +28,7 @@ class CTRTester:
         self.use_prompt = self.type == 'prompt'
         self.use_embed = self.type == 'embed'
 
-        assert config.task in ["ctr", "drec", "seq"]
+        assert config.task == "ctr"
         self.task = config.task
 
         self.subset = "test"
@@ -48,6 +50,8 @@ class CTRTester:
         if self.use_encoding():
             self.num_codes = model.num_codes
 
+        self.latency_timer = Timer(activate=False)
+
     def use_encoding(self):
         return self.config.code_path is not None or self.config.code_type is not None
 
@@ -63,6 +67,7 @@ class CTRTester:
         return history, candidate[:max(len(candidate) // 2, 10)]
 
     def _retry_with_truncation(self, history, candidate, input_template):
+        self.latency_timer.run('test')
         for _ in range(5):
             for i in range(len(history)):
                 _history = [f'({j + 1}) {history[i + j]}' for j in range(len(history) - i)]
@@ -77,10 +82,7 @@ class CTRTester:
         return None
 
     def test_prompt(self):
-        if self.config.task in ["drec", "seq"]:
-            input_template = "User behavior sequence: \n{0}\nCandidate items: {1}"
-        else:
-            input_template = "User behavior sequence: \n{0}\nCandidate item: {1}"
+        input_template = "User behavior sequence: \n{0}\nCandidate item: {1}"
 
         progress = 0
 
@@ -96,16 +98,15 @@ class CTRTester:
             if idx < progress:
                 continue
 
-            uid, item_id, history, candidate, label = data # candidate is a list of candidates in case of drec
-
-            if self.task == "drec":
-                candidate = "\n".join(candidate)
+            uid, item_id, history, candidate, label = data
 
             response = self._retry_with_truncation(history, candidate, input_template)
 
             if response is None:
                 logger.error(f'Failed to get response for {idx} ({uid}, {item_id})')
                 exit(0)
+
+            self.latency_timer.run('test')
 
             if isinstance(response, int):
                 response = f'{response:.4f}'
@@ -121,8 +122,7 @@ class CTRTester:
                 pass
             bar.set_postfix_str(f'label: {label}, response: {response}')
 
-            if not self.config.latency:
-                self.exporter.write_scores(response)
+            self.exporter.write_scores(response)
 
     def _get_embedding(self, _id, data, is_user=True):
         embed_dict = self.exporter.load_embed('user' if is_user else 'item')
@@ -134,6 +134,7 @@ class CTRTester:
             return embed_dict[_id], embed_dict
 
         embed = None
+        self.latency_timer.run('test')
         if self.model.AS_DICT:
             embed = self.model.embed(history if is_user else [candidate])
         else:
@@ -163,6 +164,8 @@ class CTRTester:
         if embed is None:
             logger.error(f'Failed to get {"user" if is_user else "item"} embeddings for {_id}')
             exit(0)
+
+        self.latency_timer.run('test')
 
         embed_dict[_id] = embed
         return embed, embed_dict
@@ -220,9 +223,9 @@ class CTRTester:
         with torch.no_grad():
             score_list, label_list, group_list = [], [], []
             for index, batch in tqdm(enumerate(test_dl), total=total_valid_steps[0], desc="Testing"):
-                # self.latency_timer.run('test')
+                self.latency_timer.run('test')
                 scores = self.model.evaluate(batch)
-                # self.latency_timer.run('test')
+                self.latency_timer.run('test')
                 labels = batch[Map.LBL_COL].tolist()
                 groups = batch[Map.UID_COL].tolist()
 
@@ -253,12 +256,19 @@ class CTRTester:
         for metric, value in results.items():
             logger.info(f'{metric}: {value:.4f}')
 
+        latency_st = self.latency_timer.status_dict["test"]
+        results['Avg inference time'] = latency_st.avgms()
+        results['Total steps'] = latency_st.count
+
         self.exporter.save_metrics(results)
 
     def __call__(self):
         if self.config.latency:
             # TODO
             return
+
+        self.latency_timer.activate()
+        self.latency_timer.clear()
 
         if self.use_encoding():
             self.test_encoding()
@@ -267,5 +277,8 @@ class CTRTester:
             self.test_prompt()
         else:
             self.test_embed()
+
+        st = self.latency_timer.status_dict["test"]
+        logger.debug(f'Total {st.count} steps, avg ms {st.avgms():.4f}')
 
         self.evaluate()
