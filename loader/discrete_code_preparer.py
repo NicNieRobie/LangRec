@@ -32,7 +32,7 @@ class DiscreteCodePreparer(CodePreparer):
         item_indices = self.processor.items[self.processor.ITEM_ID_COL]
         for item_index in item_indices:
             current_indices = code_indices[str(item_index)]
-            self.code_indices[item_index] = current_indices
+            self.code_indices[str(item_index)] = current_indices
 
             current_node = self.code_tree
             for index in current_indices:

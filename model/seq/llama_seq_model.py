@@ -1,4 +1,4 @@
-from model.ctr.llama_model import LlamaModel, Llama3_1Model
+from model.ctr.llama_model import LlamaModel
 from model.seq.base_seq_model import BaseSeqModel
 from utils.discovery.ignore_discovery import ignore_discovery
 from utils.prompts import PROMPT_SUFFIX, SIMPLE_PROMPT
