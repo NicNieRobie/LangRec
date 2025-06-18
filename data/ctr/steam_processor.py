@@ -2,24 +2,23 @@ import os.path
 
 import pandas as pd
 
-from data.ctr.timed_interaction_processor import TimedInteractionProcessor
+from data.ctr.neg_sampling_processor import NegSamplingProcessor
+from data.ctr.seq_to_label_processor import SequenceToLabelProcessor
 
 
-class SteamProcessor(TimedInteractionProcessor):
+class SteamProcessor(NegSamplingProcessor, SequenceToLabelProcessor):
     DATASET_NAME = 'steam'
 
     ITEM_ID_COL = 'app_id'
     USER_ID_COL = 'user_id'
     HISTORY_COL = 'history'
     LABEL_COL = 'click'
-    DATE_COL = 'timestamp'
-
-    RATING_COL = 'rating'
 
     POS_SAMPLE_COUNT = 2
+    NEG_RATIO = 2
 
-    NUM_TEST = 5_000
-    NUM_FINETUNE = 40_000
+    NUM_TEST = 20_000
+    NUM_FINETUNE = 100_000
 
     CAST_TO_STRING = False
 
