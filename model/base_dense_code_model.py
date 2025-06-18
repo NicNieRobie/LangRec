@@ -42,11 +42,9 @@ class DenseCodeEmbeddingLayer(nn.Module):
         llm_mask = cast(torch.Tensor, vocab_ids == TV.LLM) & attention_mask
         code_mask = cast(torch.Tensor, vocab_ids == TV.COD) & attention_mask
 
-        pad_token_id = self.llm_embeddings.padding_idx
-        llm_input = input_ids.masked_fill(~llm_mask, pad_token_id)
+        llm_input = input_ids.masked_fill(~llm_mask, 0)
 
-        pad_token_id = self.llm_embeddings.padding_idx
-        code_input = input_ids.masked_fill(~code_mask, pad_token_id)
+        code_input = input_ids.masked_fill(~code_mask, 0)
 
         return dict(
             llm_mask=llm_mask,
