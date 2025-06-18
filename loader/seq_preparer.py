@@ -29,7 +29,7 @@ class SeqPreparer(DiscreteCodePreparer):
             uid, history = data
 
             history, curr_item_id = history[:-1], history[-1]
-            curr_item = items[curr_item_id]
+            curr_item = items[str(curr_item_id)]
 
             input_ids = prefix + user
             vocab_ids = [TV.LLM] * len(input_ids)
@@ -38,9 +38,9 @@ class SeqPreparer(DiscreteCodePreparer):
             beam_length = len(curr_item)
 
             for i in range(len(history)):
-                input_ids += numbers[i + 1] + items[history[i]] + line
-                vocab_ids += [TV.LLM] * len(numbers[i + 1]) + [TV.COD] * len(items[history[i]]) + [TV.LLM] * len(line)
-                beam_start += len(numbers[i + 1]) + len(items[history[i]]) + len(line)
+                input_ids += numbers[i + 1] + items[str(history[i])] + line
+                vocab_ids += [TV.LLM] * len(numbers[i + 1]) + [TV.COD] * len(items[str(history[i])]) + [TV.LLM] * len(line)
+                beam_start += len(numbers[i + 1]) + len(items[str(history[i])]) + len(line)
 
             input_ids += item + curr_item
             vocab_ids += [TV.LLM] * len(item) + [TV.COD] * len(curr_item)
