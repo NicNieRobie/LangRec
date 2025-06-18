@@ -159,7 +159,7 @@ class DataSphereJobOrchestrator:
                         task_id = self.state["jobs_data"].get(job_id).get("task_id")
                         send_telegram_message(
                             NotificationType.SUCCESS,
-                            {'job_id', job_id, 'task_id', task_id}
+                            {'job_id': job_id, 'task_id': task_id}
                         )
                     elif status == "ERROR":
                         logger.warning(f"Job {job_id} exited with error.")
@@ -169,8 +169,8 @@ class DataSphereJobOrchestrator:
                         })
                         task_id = self.state["jobs_data"].get(job_id).get("task_id")
                         send_telegram_message(
-                            NotificationType.SUCCESS,
-                            {'job_id', job_id, 'task_id', task_id}
+                            NotificationType.ERROR_RUN,
+                            {'job_id': job_id, 'task_id': task_id}
                         )
 
                 for entry in finished_jobs:
