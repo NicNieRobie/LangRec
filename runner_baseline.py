@@ -2,16 +2,20 @@ import os.path
 import sys
 
 import numpy as np
-import pandas as pd
 from recbole.config import Config
 from recbole.data import create_dataset
 from recbole.data import data_preparation
 from recbole.model.context_aware_recommender import DeepFM
+from recbole.model.context_aware_recommender.autoint import AutoInt
+from recbole.model.context_aware_recommender.dcn import DCN
+from recbole.model.context_aware_recommender.dcnv2 import DCNV2
+from recbole.model.context_aware_recommender.pnn import PNN
 from recbole.model.general_recommender import BPR
+from recbole.model.general_recommender.itemknn import ItemKNN
+from recbole.model.general_recommender.lightgcn import LightGCN
 from recbole.model.sequential_recommender import SASRec
 from recbole.trainer import Trainer
 
-from metrics.base_metrics_aggregator import BaseMetricsAggregator
 from utils.discovery.class_library import ClassLibrary
 from utils.export_writer import ExportWriter
 
@@ -20,18 +24,16 @@ class BaselineRunner:
     def __init__(self, config):
         self.config = config
 
+        self.representation = config.representation
+
         self.task = config.task
 
         self.model_name = config.model.upper()
         self.dataset = config.dataset.upper()
 
-        # self.processor: BaseProcessor = self.load_processor()
-        # self.processor.load()
-
         self.dataset_file = None
 
         self.model = config.model
-        #self.load_model()
 
         self.sign = ''
 
@@ -101,50 +103,6 @@ class BaselineRunner:
 
         return None
 
-    def evaluate(self):
-        scores = self.exporter.read_scores()
-
-        source_set = self.processor.get_source_set(self.config.source)
-
-        labels = source_set[self.processor.LABEL_COL].values
-        groups = source_set[self.processor.USER_ID_COL].values
-
-        aggregator = BaseMetricsAggregator.build_from_config(self.config.metrics)
-
-        results = aggregator(scores, labels, groups)
-
-        for metric, val in results.items():
-            print(f'{metric}: {val:.4f}')
-
-        self.exporter.save_metrics(results)
-
-    def get_dataset(self):
-        """creates inter file"""
-
-        if self.task == 'ctr':
-            parquet_path = f'data_store/{self.dataset.lower()}/interactions.parquet'
-
-            df = pd.read_parquet(parquet_path)
-            df.rename(columns={df.columns[0]: 'user_id:token', df.columns[1]: 'item_id:token', df.columns[2]: f'label:float'}, inplace=True)
-            df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
-
-        if self.task == 'seq':
-            parquet_path = f'data_store/{self.dataset.lower()}/users.parquet'
-
-            df = pd.read_parquet(parquet_path)
-
-            records = []
-            for _, row in df.iterrows():
-                uid = row['uid']
-                # items = parse_history(row['history'])
-                items = row['history']
-                for i, item_id in enumerate(items):
-                    records.append([uid, item_id, i + 1])
-
-            inter_df = pd.DataFrame(records, columns=['user_id:token', 'item_id:token', 'timestamp:float'])
-
-            inter_df.to_csv(f'dataset_inter/{self.task}/{self.dataset}/{self.dataset}.inter', sep='\t', index=False)
-
     def get_model(self):
         """translates model name to model instance - to simulate loading a model, like it was with LLMs"""
         if self.model == 'BPR':
@@ -153,6 +111,21 @@ class BaselineRunner:
             return DeepFM
         if self.model == 'SASRec':
             return SASRec
+        if self.model == 'AutoInt':
+            return AutoInt
+        if self.model == 'DCN':
+            return DCN
+        if self.model == 'DCNV2':
+            return DCNV2
+        if self.model == 'LightGDCN':
+            return LightGCN
+        if self.model == 'PNN':
+            return PNN
+        if self.model == 'BPR':
+            return BPR
+        if self.model == 'ItemKNN':
+            return ItemKNN
+
         return ValueError('Unknown model')
 
     def get_data(self, parameter_dict):
@@ -189,20 +162,29 @@ class BaselineRunner:
             metrics = ['Recall', 'MRR', 'NDCG']
             mode = 'full'
             return ['user_id','item_id', 'timestamp'], metrics, mode
+        if self.task == 'drec':
+            metrics = ['Recall', 'MRR', 'NDCG']
+            mode = 'full'
+            return ['user_id','item_id'], metrics, mode
+
+    def set_representation(self):
+        if self.representation == 'sem_id':
+            return ['item_id', 'label_emb']
+        return None
 
     def run(self):
-        self.get_dataset()
-
         cols, metrics, mode = self.set_task()
 
+        item_cols = self.set_representation()
+
         task = 'prediction'
-        if self.task == 'seq': task = 'ranking'
+        if self.task == 'seq' or self.task == 'drec': task = 'ranking'
 
         parameter_dict = {
             'dataset': self.dataset,
-            'data_path': f'dataset_inter/{self.task}',
-            'inter_file': self.dataset,
-            'load_col': {'inter': cols},
+            'data_path': f'dataset_inter/{self.representation}/{self.task}/',
+            'inter_file': f'{self.dataset}',
+            'load_col': {'inter': cols, 'item': item_cols} if item_cols else {'inter': cols},
             'model': self.config.model,
             'epochs': self.config.epochs,
             'train_batch_size': 2048,
@@ -218,10 +200,14 @@ class BaselineRunner:
             'show_progress': True,
         }
 
-        if self.task == 'seq':
+        parameter_dict['item_file'] = f'{self.dataset}'
+
+        if self.task == 'seq' or self.task == 'drec':
             parameter_dict['train_neg_sample_args'] = None
 
-        print(parameter_dict)
+
+            parameter_dict['USER_ID_FIELD'] = 'user_id'
+            parameter_dict['ITEM_ID_FIELD'] = 'item_id'
 
         train_data, valid_data, test_data, config, dataset = self.get_data(parameter_dict)
 
