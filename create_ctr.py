@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-dataset = 'GOODREADS'
+dataset = 'STEAM'
 
 repr = 'sem_id'
 
@@ -13,9 +13,13 @@ if repr == 'text':
               inplace=True)
 
     items = pd.read_parquet(f'data_store/{dataset.lower()}/items.parquet')
-    items.rename(columns={items.columns[0]: 'item_id:token', items.columns[1]: 'label:float'},
+    items.rename(columns={items.columns[0]: 'item_id:token', items.columns[1]: 'item_label:token'},
               inplace=True)
+
     df = df.merge(items, on='item_id:token', how='inner')
+
+    df = df[['user_id:token', 'item_label:token', 'label:float']]
+    df = df.rename(columns={'item_label:token': 'item_id:token'})
 
     output_dir = f'dataset_inter/{repr}/ctr/{dataset}/'
     os.makedirs(output_dir, exist_ok=True)

@@ -3,7 +3,7 @@ import os
 
 dataset = 'STEAM'
 
-repr = 'sem_id'
+repr = 'text'
 
 parquet_path = f'data_store/{dataset.lower()}/users.parquet'
 
@@ -23,10 +23,14 @@ if repr == 'text':
     items = pd.read_parquet(f'data_store/{dataset.lower()}/items.parquet')
     items.rename(columns={items.columns[0]: 'item_id:token', items.columns[1]: 'label:float'},
               inplace=True)
+
     df = df.merge(items, on='item_id:token', how='inner')
 
     output_dir = f'dataset_inter/{repr}/seq/{dataset}/'
     os.makedirs(output_dir, exist_ok=True)
+
+    df = df[['user_id:token', 'timestamp:float', 'label:float']]
+    df = df.rename(columns={'label:float': 'item_id:token'})
 
     df.to_csv(f'{output_dir}{dataset}.inter', sep='\t', index=False)
 
