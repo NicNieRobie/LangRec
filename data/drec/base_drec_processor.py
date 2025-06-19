@@ -100,6 +100,10 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
         with tqdm(total=count, desc="Generating split") as pbar:
             for group in iterator:
                 pos_ids = group[group[self.LABEL_COL] == 1]
+
+                if len(pos_ids) == 0:
+                    continue
+
                 neg_ids = items[~items[self.ITEM_ID_COL].isin(pos_ids)]
 
                 true_label = pos_ids[self.ITEM_ID_COL].iloc[-1]
@@ -155,7 +159,7 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
     def load_user_order(self):
         path = os.path.join(self.store_dir, 'user_order_drec.txt')
         if os.path.exists(path):
-            return [int(line.strip()) for line in open(path)]
+            return [line.strip() for line in open(path)]
 
         users = self.interactions[self.USER_ID_COL].unique().tolist()
         random.shuffle(users)

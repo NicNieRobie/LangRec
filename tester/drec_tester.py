@@ -1,3 +1,4 @@
+import os
 import random
 from typing import cast
 
@@ -9,13 +10,14 @@ from loader.drec_preparer import DrecPreparer
 from metrics.drec.drec_metrics_aggregator import DrecMetricsAggregator
 from model.drec.base_drec_model import BaseDrecModel
 from utils.dataloader import get_steps
+from utils.export_writer import ExportWriter
 from utils.timer import Timer
 
 from loguru import logger
 
 
 class DrecTester:
-    def __init__(self, config, processor, model):
+    def __init__(self, config, processor, model, run_name):
         self.model = model
         self.processor = processor
 
@@ -24,6 +26,14 @@ class DrecTester:
         self.num_codes = model.num_codes
 
         self.latency_timer = Timer(activate=False)
+
+        self.export_dir = os.path.join('export', run_name)
+
+        os.makedirs(self.export_dir, exist_ok=True)
+        self.exporter = ExportWriter(os.path.join(self.export_dir))
+
+        if self.config.rerun:
+            self.exporter.reset()
 
     def _evaluate(self, dataloader, steps, step=1):
         search_mode = self.config.search_mode
@@ -91,6 +101,8 @@ class DrecTester:
             results = self._evaluate(test_dl, total_valid_steps)
             for metric, value in results.items():
                 print(f'{metric}: {value:.4f}')
+
+            self.exporter.save_metrics(results)
 
     def __call__(self):
         self.latency_timer.activate()

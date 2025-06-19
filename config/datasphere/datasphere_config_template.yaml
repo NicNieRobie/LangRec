@@ -13,6 +13,10 @@ inputs:
   - model_files/
 outputs:
   - export/
+working-storage:
+  type: SSD
+  size: 200Gb
 cloud-instance-type:
+  - g2.1
   - g1.1
   - c1.4

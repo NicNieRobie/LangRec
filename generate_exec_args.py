@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import yaml
 
-DATASETS = ['MOVIELENS', 'STEAM', 'GOODREADS']
+DATASETS = ['MOVIELENS', 'GOODREADS']
 CODE_TYPES = ['id', 'sid']
 
 VALID_METRICS = {
@@ -43,10 +43,16 @@ def build_args_list(model_cfg, mode):
         entries = model_entries if isinstance(model_entries, list) else [model_entries]
 
         for entry in entries:
+            if mode == 'testtune' and not entry.get('finetune'):
+                continue
+
             task = entry.get('task')
             model_type = entry.get('type')
             kind = entry.get('kind')
-            requires_cloud = kind == 'large' or model_type == 'encoding' or mode != 'test'
+            requires_cloud = kind == 'large' or mode != 'test'
+
+            if model_type == 'encoding' and mode != 'testtune':
+                continue
 
             metrics_str = ','.join(METRICS[task])
             valid_metric = VALID_METRICS.get(task) if mode == 'testtune' else None
@@ -54,7 +60,8 @@ def build_args_list(model_cfg, mode):
             if model_type == 'encoding':
                 for dataset in DATASETS:
                     for code_type in CODE_TYPES:
-                        build_base_args(model_name, dataset, 'prompt', metrics_str, task, kind, requires_cloud, valid_metric, code_type)
+                        is_cloud = requires_cloud or code_type == 'sid'
+                        build_base_args(model_name, dataset, 'prompt', metrics_str, task, kind, is_cloud, valid_metric, code_type)
             else:
                 for dataset in DATASETS:
                     build_base_args(model_name, dataset, model_type, metrics_str, task, kind, requires_cloud, valid_metric)
