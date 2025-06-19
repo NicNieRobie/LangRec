@@ -19,7 +19,6 @@ from recbole.trainer import Trainer
 from utils.discovery.class_library import ClassLibrary
 from utils.export_writer import ExportWriter
 
-
 class BaselineRunner:
     def __init__(self, config):
         self.config = config
@@ -27,6 +26,8 @@ class BaselineRunner:
         self.representation = config.representation
 
         self.task = config.task
+
+        self.log_level = config.log_level
 
         self.model_name = config.model.upper()
         self.dataset = config.dataset.upper()
@@ -146,7 +147,7 @@ class BaselineRunner:
 
         trainer = Trainer(config, model) # load model instance and config into trainer
 
-        best_valid_score, best_valid_result = trainer.fit(train_data, valid_data)
+        best_valid_score, best_valid_result = trainer.fit(train_data, valid_data, verbose=True)
         return best_valid_score, best_valid_result, trainer
 
     def eval_model(self, trainer, test_data):
@@ -198,6 +199,7 @@ class BaselineRunner:
             'topk': self.config.topk,
             'task': task,
             'show_progress': True,
+            'log_level': 'INFO' if self.log_level == 'true' else 'ERROR',
         }
 
         parameter_dict['item_file'] = f'{self.dataset}'

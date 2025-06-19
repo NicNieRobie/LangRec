@@ -78,3 +78,11 @@ arguments:
       - drec
       - seq
     default: drec
+  log_level:
+    help: Logging
+    required: false
+    type: str
+    choices:
+      - true
+      - false
+    default: true

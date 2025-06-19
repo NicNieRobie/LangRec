@@ -4,7 +4,7 @@ from sentence_transformers import SentenceTransformer
 
 dataset = 'STEAM'
 
-repr = 'sem_id'
+repr = 'text'
 
 parquet_path = f'data_store/{dataset.lower()}/interactions.parquet'
 df = pd.read_parquet(parquet_path)
