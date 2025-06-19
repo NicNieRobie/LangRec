@@ -1,3 +1,4 @@
+import os
 import random
 from typing import cast
 
@@ -11,11 +12,12 @@ from model.seq.base_seq_model import BaseSeqModel
 from utils.dataloader import get_steps
 from loguru import logger
 
+from utils.export_writer import ExportWriter
 from utils.timer import Timer
 
 
 class SeqTester:
-    def __init__(self, config, processor, model):
+    def __init__(self, config, processor, model, run_name):
         self.model = model
         self.processor = processor
 
@@ -24,6 +26,14 @@ class SeqTester:
         self.num_codes = model.num_codes
 
         self.latency_timer = Timer(activate=False)
+
+        self.export_dir = os.path.join('export', run_name)
+
+        os.makedirs(self.export_dir, exist_ok=True)
+        self.exporter = ExportWriter(os.path.join(self.export_dir))
+
+        if self.config.rerun:
+            self.exporter.reset()
 
     def _evaluate(self, dataloader, steps, step=1):
         search_mode = self.config.search_mode
@@ -92,6 +102,8 @@ class SeqTester:
             logger.info(f'Evaluation results')
             for metric, value in results.items():
                 logger.info(f'{metric}: {value:.4f}')
+
+            self.exporter.save_metrics(results)
 
     def __call__(self):
         self.latency_timer.activate()

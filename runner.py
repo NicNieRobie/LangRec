@@ -59,9 +59,9 @@ class Runner:
 
     def _init_tester(self):
         if self.config.task == 'seq':
-            return SeqTester(self.config, self.processor, self.model)
+            return SeqTester(self.config, self.processor, self.model, self.run_name)
         elif self.config.task == 'drec':
-            return DrecTester(self.config, self.processor, self.model)
+            return DrecTester(self.config, self.processor, self.model, self.run_name)
         else:
             return CTRTester(self.config, self.processor, self.model, self.run_name)
 
