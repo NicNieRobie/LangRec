@@ -183,7 +183,7 @@ class DataSphereJobOrchestrator:
                             {'job_id': job_id, 'task_id': task_id}
                         )
                     elif status == "ERROR":
-                        logger.warning(f"Job {job_id} exited with error.")
+                        logger.error(f"Job {job_id} exited with error. Stopping all jobs.")
                         finished_jobs.append({
                             'id': job_id,
                             'success': False
@@ -193,6 +193,10 @@ class DataSphereJobOrchestrator:
                             NotificationType.ERROR_RUN,
                             {'job_id': job_id, 'task_id': task_id}
                         )
+
+                        self.exit_event.set()
+
+                        break
                     elif status == "CANCELLED":
                         logger.info(f"Job {job_id} cancelled. It won't be rerun automatically.")
                         finished_jobs.append({

@@ -29,6 +29,8 @@ ERROR_RUN_MESSAGE_TEMPLATE = """
 
 Task ID: `{task_id}`
 Link: https://datasphere.yandex.cloud/communities/{datasphere_com}/projects/{datasphere_proj}/job/{job_id}
+
+Stopping the orchestration process.
 """
 
 SUCCESS_MESSAGE_TEMPLATE = """
