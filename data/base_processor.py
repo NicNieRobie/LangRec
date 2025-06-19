@@ -180,10 +180,10 @@ class BaseProcessor(abc.ABC):
         return item_set
 
     def load_valid_user_set(self, valid_ratio: float, task: str) -> set:
-        path = os.path.join(self.store_dir, f'valid_user_set_{valid_ratio}_{task}.txt')
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                return {line.strip() for line in f}
+        # path = os.path.join(self.store_dir, f'valid_user_set_{valid_ratio}_{task}.txt')
+        # if os.path.exists(path):
+        #     with open(path, 'r') as f:
+        #         return {line.strip() for line in f}
 
         users = self.finetune_set[self.USER_ID_COL].unique().tolist()
         random.shuffle(users)
@@ -191,8 +191,8 @@ class BaseProcessor(abc.ABC):
         valid_user_num = int(valid_ratio * len(users))
         valid_user_set = users[:valid_user_num]
 
-        with open(path, 'w') as f:
-            for u in valid_user_set:
-                f.write(f'{u}\n')
+        # with open(path, 'w') as f:
+        #     for u in valid_user_set:
+        #         f.write(f'{u}\n')
 
         return set(map(str, valid_user_set))
