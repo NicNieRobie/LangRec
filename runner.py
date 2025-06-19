@@ -1,21 +1,19 @@
 import os
 
 from codecarbon import OfflineEmissionsTracker
+from loguru import logger
 
 from data.base_processor import BaseProcessor
-from model.drec.base_drec_model import BaseDrecModel
-from model.seq.base_seq_model import BaseSeqModel
+from model.base_discrete_code_model import BaseDiscreteCodeModel
 from tester.ctr_tester import CTRTester
-from tester.seq_tester import SeqTester
 from tester.drec_tester import DrecTester
+from tester.seq_tester import SeqTester
 from tuner.ctr_tuner import CTRTuner
 from tuner.drec_tuner import DrecTuner
 from tuner.seq_tuner import SeqTuner
 from utils.code import get_code_indices
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import GPU
-from loguru import logger
-
 from utils.run import generate_run_name_and_hash
 
 
@@ -84,7 +82,7 @@ class Runner:
         model = models[self.model_name]
         device = self.get_device()
 
-        if issubclass(model, BaseSeqModel) or issubclass(model, BaseDrecModel):
+        if issubclass(model, BaseDiscreteCodeModel):
             _, code_list, num_codes = get_code_indices(self.config, device)
 
             return model(device=device, num_codes=num_codes, code_list=code_list, task=self.task).load()
