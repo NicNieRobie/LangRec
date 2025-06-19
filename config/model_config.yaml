@@ -18,16 +18,6 @@ LLAMA3_1:
     finetune: true
     type: prompt
     kind: large
-  - key: meta-llama/Llama-3.1-8B-Instruct
-    task: seq
-    finetune: true
-    type: encoding
-    kind: large
-  - key: meta-llama/Llama-3.1-8B-Instruct
-    task: drec
-    finetune: true
-    type: encoding
-    kind: large
 
 LLAMA3_1_DC:
   key: meta-llama/Llama-3.1-8B
@@ -59,27 +49,12 @@ QWEN2_5_7B:
     finetune: true
     type: prompt
     kind: large
-  - key: Qwen/Qwen2.5-7B-Instruct
-    task: seq
-    finetune: true
-    type: encoding
-    kind: large
-  - key: Qwen/Qwen2-1.5B-Instruct
-    task: drec
-    finetune: true
-    type: encoding
-    kind: small
 
 MISTRAL7B:
   - key: mistralai/Mistral-7B-Instruct-v0.3
     task: ctr
     finetune: true
     type: prompt
-    kind: large
-  - key: mistralai/Mistral-7B-Instruct-v0.3
-    task: drec
-    finetune: true
-    type: encoding
     kind: large
 
 BERTBASE:

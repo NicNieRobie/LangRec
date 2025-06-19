@@ -1,7 +1,9 @@
 import os.path
 import sys
+import time
 
 import numpy as np
+from codecarbon import OfflineEmissionsTracker
 from recbole.config import Config
 from recbole.data import create_dataset
 from recbole.data import data_preparation
@@ -134,24 +136,38 @@ class BaselineRunner:
 
         sys.argv = [sys.argv[0]]  # clean cmd arguments so that config actually takes parameter_dict and not sys.argv
 
-        config = Config(model=self.model, config_dict=parameter_dict) # create recbole config
+        config = Config(model=self.model, config_dict=parameter_dict)  # create recbole config
 
-        dataset = create_dataset(config) # create recbole dataset
+        dataset = create_dataset(config)  # create recbole dataset
 
-        train_data, valid_data, test_data = data_preparation(config, dataset) # split data
+        train_data, valid_data, test_data = data_preparation(config, dataset)  # split data
         return train_data, valid_data, test_data, config, dataset
 
     def run_model(self, train_data, valid_data, config, dataset):
         model = self.get_model()
         model = model(config, dataset).to(config['device'])
 
-        trainer = Trainer(config, model) # load model instance and config into trainer
+        trainer = Trainer(config, model)  # load model instance and config into trainer
 
         best_valid_score, best_valid_result = trainer.fit(train_data, valid_data, verbose=True)
         return best_valid_score, best_valid_result, trainer
 
     def eval_model(self, trainer, test_data):
+        start_time = time.time()
+
         test_result = trainer.evaluate(test_data)
+
+        end_time = time.time()
+        total_time = end_time - start_time
+
+        num_samples = len(test_data)
+
+        avg_time_per_sample = (total_time / num_samples) * 1000
+
+        print(f"[Eval] Total inference time: {total_time:.4f} sec")
+        print(f"[Eval] Number of samples: {num_samples}")
+        print(f"[Eval] Average inference time per sample: {avg_time_per_sample:.6f} ms")
+
         return test_result
 
     def set_task(self):
@@ -162,11 +178,11 @@ class BaselineRunner:
         if self.task == 'seq':
             metrics = ['Recall', 'MRR', 'NDCG']
             mode = 'full'
-            return ['user_id','item_id', 'timestamp'], metrics, mode
+            return ['user_id', 'item_id', 'timestamp'], metrics, mode
         if self.task == 'drec':
             metrics = ['Recall', 'MRR', 'NDCG']
             mode = 'full'
-            return ['user_id','item_id'], metrics, mode
+            return ['user_id', 'item_id'], metrics, mode
 
     def set_representation(self):
         if self.representation == 'sem_id':
@@ -207,7 +223,6 @@ class BaselineRunner:
         if self.task == 'seq' or self.task == 'drec':
             parameter_dict['train_neg_sample_args'] = None
 
-
             parameter_dict['USER_ID_FIELD'] = 'user_id'
             parameter_dict['ITEM_ID_FIELD'] = 'item_id'
 
@@ -217,6 +232,20 @@ class BaselineRunner:
 
         print(best_valid_score, best_valid_result)
 
-        test_score = self.eval_model(trainer, test_data)
+        export_dir = os.path.join('export', f'{self.model_name}_{self.dataset}_{self.task}_{self.representation}')
+
+        os.makedirs(export_dir, exist_ok=True)
+
+        print(f'Output dir: {export_dir}')
+
+        with OfflineEmissionsTracker(
+            country_iso_code="RUS",
+            log_level="ERROR",
+            output_file=os.path.join(
+                export_dir,
+                "test_emissions.csv"
+            ),
+        ) as _:
+            test_score = self.eval_model(trainer, test_data)
 
         print(test_score)
