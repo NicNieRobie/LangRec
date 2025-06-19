@@ -1,26 +1,51 @@
 import os.path
+import shlex
 import sys
+
+from typing import Union
+from collections.abc import Iterable
 
 import yaml
 import argparse
 
-
 class ArgParser:
-    def __init__(self, config_path):
+    def __init__(self, config_path, validate_input=True):
         self.config = self._load_config(config_path)
-        self.parser = self._init_parser()
+        self.parser = self._init_parser(validate_input)
 
         self.__args_str = None
 
     @staticmethod
-    def _load_config(config_path):
+    def _load_config_from_file(config_path: str):
+        """
+        Loads the config from a single file
+        """
         if not os.path.exists(config_path):
             raise FileNotFoundError(f'CLI config file not found: {config_path}')
 
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
 
-    def _init_parser(self):
+    @staticmethod
+    def _load_config(config_path: Union[Iterable[str], str]):
+        """
+        Loads the config from a single source file or appends configs from multiple sources
+        """
+        if isinstance(config_path, Iterable) and not isinstance(config_path, str):
+            ans = {"arguments": dict()}
+            for path in config_path:
+                config = ArgParser._load_config_from_file(path)
+
+                if config.get("description", False):
+                    ans["description"] = config.get("description")
+
+                ans["arguments"].update(config["arguments"])
+
+            return ans
+        else:
+            return ArgParser._load_config_from_file(config_path)
+
+    def _init_parser(self, validate_input):
         parser = argparse.ArgumentParser(description=self.config.get('description', ''))
 
         for arg_name, arg_config in self.config.get('arguments', {}).items():
@@ -28,7 +53,7 @@ class ArgParser:
 
             kwargs = {
                 'help': arg_config.get('help', ''),
-                'required': arg_config.get('required', False)
+                'required': validate_input & arg_config.get('required', False)
             }
 
             arg_type = arg_config.get('type', 'str')
@@ -57,10 +82,14 @@ class ArgParser:
 
         return parser
 
-    def parse_args(self):
-        self.__args_str = ' '.join(sys.argv[1:])
-
-        return self.parser.parse_args()
+    def parse_args(self, args_str=None):
+        if args_str:
+            self.__args_str = args_str
+            args_list = shlex.split(args_str)
+            return self.parser.parse_args(args_list)
+        else:
+            self.__args_str = ' '.join(sys.argv[1:])
+            return self.parser.parse_args()
 
     @property
     def args_str(self):

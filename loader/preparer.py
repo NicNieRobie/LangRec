@@ -2,14 +2,15 @@ import os.path
 from typing import Optional
 
 import pandas as pd
+from loguru import logger
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from data.base_processor import BaseProcessor
 from loader.dataset import Dataset
 from loader.map import Map
 from model.base_model import BaseModel
-from data.base_processor import BaseProcessor
-from utils.obj_idx_vocabulary import ObjIdxVocabulary
+from tuner.tune_utils.obj_idx_vocabulary import ObjIdxVocabulary
 
 
 class Preparer:
@@ -40,7 +41,7 @@ class Preparer:
         )
 
     def get_primary_signature(self):
-        return f'{self.processor.dataset_name}_{self.model.get_name()}'
+        return f'{self.processor.dataset_name}_{self.model.get_name()}_{self.config.task}_{self.config.code_type}'
 
     def get_secondary_signature(self):
         return f'{self.config.valid_ratio}'
@@ -63,10 +64,10 @@ class Preparer:
         datalist = []
 
         max_sequence_len = 0
-        print(f'preprocessing on the {self.processor.dataset_name} dataset')
         for index, data in tqdm(
-                enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
-                total=len(self.processor.get_source_set(source=source))
+            enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
+            total=len(self.processor.get_source_set(source=source)),
+            desc=f"Preprocessing the {self.processor.dataset_name} dataset"
         ):
             uid, iid, history, label = data
 
@@ -105,7 +106,7 @@ class Preparer:
             data[Map.UID_COL] = self.uid_vocab.append(data[Map.UID_COL])
             data[Map.IID_COL] = self.iid_vocab.append(data[Map.IID_COL])
 
-        print(f'{self.processor.dataset_name} dataset: max_sequence_len: {max_sequence_len}')
+        logger.debug(f'{self.processor.dataset_name} dataset - max_sequence_len: {max_sequence_len}')
 
         return datalist
 
@@ -131,7 +132,7 @@ class Preparer:
         assert mode in ['train', 'valid', 'test'], f'unknown mode: {mode}'
 
         if self.has_generated:
-            print(f'loading prepared {mode} data on {self.processor.dataset_name} dataset')
+            logger.debug(f'Loading prepared {mode} data on {self.processor.dataset_name} dataset')
 
             self.iid_vocab.load(self.store_dir)
             self.uid_vocab.load(self.store_dir)

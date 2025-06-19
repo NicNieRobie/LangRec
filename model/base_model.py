@@ -5,6 +5,7 @@ from peft import LoraConfig, get_peft_model
 
 from loader.map import Map
 from utils.model import match
+from loguru import logger
 
 
 class BaseModel:
@@ -16,10 +17,12 @@ class BaseModel:
     BIT: int
     PEFT_TARGET_MODULES = ['q_proj', 'v_proj', 'query', 'value']
 
-    def __init__(self, device):
+    def __init__(self, device, task):
         self.device = device
 
-        self.key = match(self.get_name()) or self.KEY
+        self.params = match(self.get_name(), task)
+
+        self.key = self.params.get('key') or self.KEY
 
         self.parallel = False
 
@@ -142,12 +145,12 @@ class BaseModel:
         tune_from = self.NUM_LAYERS + tune_from if tune_from < 0 else tune_from
 
         if not conf.use_lora:
-            print(f'fully finetuning {self.get_name()} model without lora')
+            logger.info(f'Fully finetuning {self.get_name()} model without lora')
             return
         self.use_lora = True
 
-        print(f'finetuning {self.get_name()} model with lora ({conf.lora_r}, {conf.lora_alpha}, {conf.lora_dropout})')
-        print('tune_from:', tune_from)
+        logger.info(f'Finetuning {self.get_name()} model with lora ({conf.lora_r}, {conf.lora_alpha}, {conf.lora_dropout})')
+        logger.debug(f'tune_from: {tune_from}')
 
         transformer_layers = []
         for name, _ in self.model.named_modules():
@@ -192,7 +195,7 @@ class BaseModel:
         torch.save(state_dict, path)
 
     def load_pretrained(self, path):
-        print(f"Loading finetuned model from {path}")
+        logger.info(f"Loading finetuned model from {path}")
 
         state_dict = torch.load(path, map_location='cpu')
 

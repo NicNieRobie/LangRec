@@ -1,3 +1,4 @@
+emissions/
 export/
 data_store/
 model_files/
@@ -6,6 +7,7 @@ ckpt/
 encoding/
 tuning/
 config/datasphere/tasks/
+datasphere_data
 
 .auth
 

@@ -2,21 +2,22 @@ import os.path
 import sys
 
 import numpy as np
-from recbole.model.context_aware_recommender import DeepFM
 from recbole.config import Config
 from recbole.data import create_dataset
-from recbole.model.general_recommender import BPR
-from recbole.trainer import Trainer
-from utils.discovery.class_library import ClassLibrary
-from utils.exporter import Exporter
-from recbole.model.general_recommender.lightgcn import LightGCN
 from recbole.data import data_preparation
-from recbole.model.sequential_recommender import SASRec
+from recbole.model.context_aware_recommender import DeepFM
 from recbole.model.context_aware_recommender.autoint import AutoInt
 from recbole.model.context_aware_recommender.dcn import DCN
 from recbole.model.context_aware_recommender.dcnv2 import DCNV2
 from recbole.model.context_aware_recommender.pnn import PNN
+from recbole.model.general_recommender import BPR
 from recbole.model.general_recommender.itemknn import ItemKNN
+from recbole.model.general_recommender.lightgcn import LightGCN
+from recbole.model.sequential_recommender import SASRec
+from recbole.trainer import Trainer
+
+from utils.discovery.class_library import ClassLibrary
+from utils.export_writer import ExportWriter
 
 
 class BaselineRunner:
@@ -40,7 +41,7 @@ class BaselineRunner:
 
         os.makedirs(self.log_dir, exist_ok=True)
 
-        self.exporter = Exporter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}.dat'))
+        self.exporter = ExportWriter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}.dat'))
 
         if self.config.rerun:
             self.exporter.reset()

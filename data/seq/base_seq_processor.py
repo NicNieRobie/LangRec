@@ -4,6 +4,7 @@ import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
+from loguru import logger
 from tqdm import tqdm
 
 from data.base_processor import BaseProcessor
@@ -31,19 +32,19 @@ class BaseSeqProcessor(BaseProcessor, abc.ABC):
 
     def load(self):
         try:
-            print(f'Attempting to load {self.DATASET_NAME} from cache')
+            logger.debug(f'Attempting to load {self.DATASET_NAME} from cache')
             self.items = self.loader.load_parquet('items')
             self.users = self.loader.load_parquet('users')
-            print(f'Loaded {len(self.items)} items, {len(self.users)} users')
+            logger.debug(f'Loaded {len(self.items)} items, {len(self.users)} users')
         except Exception as e:
-            print(f'Failed to load cached files: {e}. Loading raw data for {self.DATASET_NAME}...')
+            logger.debug(f'Failed to load cached files: {e}. Loading raw data for {self.DATASET_NAME}...')
             self.items = self.loader.cast_df(self.load_items())
             self.users = self.loader.cast_df(self.load_users())
-            print(f'Loaded {len(self.items)} items, {len(self.users)} users')
+            logger.debug(f'Loaded {len(self.items)} items, {len(self.users)} users')
 
             self.loader.save_parquet('items', self.items)
             self.loader.save_parquet('users', self.users)
-            print(f'{self.DATASET_NAME} cached')
+            logger.debug(f'{self.DATASET_NAME} cached')
 
         if self.CAST_TO_STRING:
             self.users[self.HISTORY_COL] = self.users[self.HISTORY_COL].apply(lambda x: [str(i) for i in x])
@@ -55,7 +56,7 @@ class BaseSeqProcessor(BaseProcessor, abc.ABC):
             self.users, self.items, self.store_dir, self.state,
             self.USER_ID_COL, self.ITEM_ID_COL, self.HISTORY_COL
         ).compress():
-            print(f'Compressed {self.DATASET_NAME} data')
+            logger.debug(f'Compressed {self.DATASET_NAME} data')
             return self.load()
 
         self.load_public_sets()
@@ -63,14 +64,14 @@ class BaseSeqProcessor(BaseProcessor, abc.ABC):
 
     def _iterator(self, user_order, users):
         for uid in user_order:
-            user = users[users[self.USER_ID_COL] == int(uid)]
+            user = users[users[self.USER_ID_COL] == uid]
             yield user.iloc[0]
 
     @staticmethod
     def split(iterator, count):
         users = []
 
-        for user in tqdm(iterator, total=count):
+        for user in tqdm(iterator, total=count, desc="Generating split"):
             users.append(user)
             if len(users) >= count:
                 break
@@ -104,23 +105,22 @@ class BaseSeqProcessor(BaseProcessor, abc.ABC):
         if self.try_load_cached_splits(suffix="_seq"):
             return
 
-        print(f'Processing data from {self.DATASET_NAME}...')
+        logger.debug(f'Processing data from {self.DATASET_NAME}...')
 
         users_order = self.load_user_order()
-        print('users cols', self.users.columns)
         iterator = self._iterator(users_order, self.users)
 
         if self.NUM_TEST:
             self.test_set = self.split(iterator, self.NUM_TEST)
             self.test_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('test_seq', self.test_set)
-            print(f'Generated test set with {len(self.test_set)}/{self.NUM_TEST} samples')
+            logger.debug(f'Generated test set with {len(self.test_set)}/{self.NUM_TEST} samples')
 
         if self.NUM_FINETUNE:
             self.finetune_set = self.split(iterator, self.NUM_FINETUNE)
             self.finetune_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('finetune_seq', self.finetune_set)
-            print(f'Generated finetune set with {len(self.finetune_set)}/{self.NUM_FINETUNE} samples')
+            logger.debug(f'Generated finetune set with {len(self.finetune_set)}/{self.NUM_FINETUNE} samples')
 
         self._loaded = True
 
@@ -131,8 +131,6 @@ class BaseSeqProcessor(BaseProcessor, abc.ABC):
     def _iterate(self, df: pd.DataFrame, slicer: Union[int, Callable], **kwargs):
         if isinstance(slicer, int):
             slicer = self._build_slicer(slicer)
-
-        print('cols', df.columns)
 
         for _, row in df.iterrows():
             uid = row[self.USER_ID_COL]

@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from loguru import logger
 from tqdm import tqdm
 
 from utils.discovery.class_library import ClassLibrary
@@ -30,23 +31,23 @@ class Embedder:
         self.embedding_path = os.path.join(self.log_dir, f'{self.model_name}-embeds-{self.task}.npy')
 
     def _load_model(self):
-        models = ClassLibrary.models(self.task)
+        models = ClassLibrary.sentence_models()
 
         if self.model_name not in models:
-            raise ValueError(f'Unknown model: {self.model_name}')
+            raise ValueError(f'Unknown sentence model: {self.model_name}')
 
         model = models[self.model_name]
 
-        return model(device=self.device).load()
+        return model(device=self.device, task=None).load()
 
     def _embed(self):
         if os.path.exists(self.embedding_path):
-            print('Embeddings file exists, skipping embedding...')
+            logger.debug('Embeddings file exists, skipping embedding...')
             return self.embedding_path
 
         item_embeddings = []
 
-        for item_id in tqdm(self.processor.item_vocab):
+        for item_id in tqdm(self.processor.item_vocab, desc=f"Generating item embeddings for dataset {self.data}"):
             item = self.processor.organize_item(item_id, item_attrs=self.attrs or self.processor.default_attrs)
             embedding = self.model.embed(item or '[Empty]', truncate=True)
             item_embeddings.append(embedding)
@@ -55,7 +56,7 @@ class Embedder:
 
         np.save(self.embedding_path, item_embeddings)
 
-        print(f'Embeddings saved to {self.embedding_path}')
+        logger.debug(f'Embeddings saved to {self.embedding_path}')
 
         return self.embedding_path
 

@@ -4,6 +4,7 @@ import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
+from loguru import logger
 
 from data.loader import Loader
 from data.processor_state import ProcessorState
@@ -129,15 +130,15 @@ class BaseProcessor(abc.ABC):
 
     def try_load_cached_splits(self, suffix: str = None) -> bool:
         if self.test_set_valid and self.finetune_set_valid:
-            print(f'Loading {self.DATASET_NAME} splits from cache')
+            logger.debug(f'Loading {self.DATASET_NAME} splits from cache')
 
             if self.NUM_TEST:
                 self.test_set = self.loader.load_parquet('test' + suffix)
-                print('Loaded test set')
+                logger.debug('Loaded test set')
 
             if self.NUM_FINETUNE:
                 self.finetune_set = self.loader.load_parquet('finetune' + suffix)
-                print('Loaded finetune set')
+                logger.debug('Loaded finetune set')
 
             self._loaded = True
 
@@ -179,10 +180,10 @@ class BaseProcessor(abc.ABC):
         return item_set
 
     def load_valid_user_set(self, valid_ratio: float, task: str) -> set:
-        path = os.path.join(self.store_dir, f'valid_user_set_{valid_ratio}_{task}.txt')
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                return {line.strip() for line in f}
+        # path = os.path.join(self.store_dir, f'valid_user_set_{valid_ratio}_{task}.txt')
+        # if os.path.exists(path):
+        #     with open(path, 'r') as f:
+        #         return {line.strip() for line in f}
 
         users = self.finetune_set[self.USER_ID_COL].unique().tolist()
         random.shuffle(users)
@@ -190,8 +191,8 @@ class BaseProcessor(abc.ABC):
         valid_user_num = int(valid_ratio * len(users))
         valid_user_set = users[:valid_user_num]
 
-        with open(path, 'w') as f:
-            for u in valid_user_set:
-                f.write(f'{u}\n')
+        # with open(path, 'w') as f:
+        #     for u in valid_user_set:
+        #         f.write(f'{u}\n')
 
         return set(map(str, valid_user_set))

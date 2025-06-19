@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset as BaseDataset
@@ -16,9 +17,9 @@ class Dataset(BaseDataset):
     def align(self, batch_size, ascending=False):
         self.datalist = self.datalist.sort_values(Map.LEN_COL, ascending=ascending).reset_index(drop=True)
 
-        print(f'combining dataset by step-wise length alignment')
         num_batches = (len(self.datalist) + batch_size - 1) // batch_size
-        for i in tqdm(range(num_batches), total=num_batches):
+
+        for i in tqdm(range(num_batches), total=num_batches, desc="Performing length alignment"):
             start_index = i * batch_size
             end_index = min(start_index + batch_size, len(self.datalist))
             batch = self.datalist.loc[start_index:end_index - 1]
@@ -28,4 +29,4 @@ class Dataset(BaseDataset):
 
     def __getitem__(self, idx):
         values = self.datalist.iloc[idx]
-        return {column: torch.tensor(values[column], dtype=torch.long) for column in self.datalist.columns}
+        return {column: torch.tensor(np.array(values[column], dtype=np.int64), dtype=torch.long) if values.dtype == np.object_ else torch.tensor(values[column], dtype=torch.long) for column in self.datalist.columns}

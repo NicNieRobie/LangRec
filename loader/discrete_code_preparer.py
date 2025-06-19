@@ -2,14 +2,16 @@ import hashlib
 import os
 
 import pandas as pd
+from loguru import logger
 from tqdm import tqdm
 
-from loader.code_preparer import CodePreparer
 from loader.code_dataset import CodeDataset
 from loader.code_map import CodeMap as Map
+from loader.code_preparer import CodePreparer
 from loader.token_vocab import TV
 from model.base_discrete_code_model import BaseDiscreteCodeModel
 from utils.code import get_code_indices
+from utils.gpu import get_device
 
 
 class DiscreteCodePreparer(CodePreparer):
@@ -19,7 +21,8 @@ class DiscreteCodePreparer(CodePreparer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        code_indices, _, _ = get_code_indices(self.config.code_path)
+
+        code_indices, _, _ = get_code_indices(self.config, get_device(self.config.gpu))
 
         self.processor.load()
         self.code_indices = dict()
@@ -29,7 +32,8 @@ class DiscreteCodePreparer(CodePreparer):
         item_indices = self.processor.items[self.processor.ITEM_ID_COL]
         for item_index in item_indices:
             current_indices = code_indices[str(item_index)]
-            self.code_indices[item_index] = current_indices
+            self.code_indices[str(item_index)] = current_indices
+
             current_node = self.code_tree
             for index in current_indices:
                 if index not in current_node:
@@ -44,7 +48,7 @@ class DiscreteCodePreparer(CodePreparer):
         self.test_datapath = os.path.join(self.store_dir, 'test.parquet')
         self.test_has_generated = os.path.exists(self.test_datapath)
 
-        print(f'prepared data will be stored in {self.store_dir}')
+        logger.debug(f'Prepared data will be stored in {self.store_dir}')
 
     def get_secondary_meta(self):
         return dict(
@@ -67,7 +71,7 @@ class DiscreteCodePreparer(CodePreparer):
     def load_or_generate(self, mode='train'):
         if mode == 'test':
             if self.test_has_generated:
-                print(f'loading prepared {mode} data on {self.processor.dataset_name} dataset')
+                logger.debug(f'Loading prepared {mode} data on {self.processor.dataset_name} dataset')
                 return self._pack_datalist(pd.read_parquet(self.test_datapath))
             else:
                 test_datalist = self._process(source='test')
@@ -83,7 +87,7 @@ class DiscreteCodePreparer(CodePreparer):
         datalist = []
         max_sequence_len = 0
 
-        for _, item in tqdm(self.processor.items.iterrows()):
+        for _, item in tqdm(self.processor.items.iterrows(), desc="Generating item alignment data"):
             content = self.processor.organize_item(item, item_attrs=self.processor.default_attrs, item_self=True)
             content = self.model.generate_simple_input_ids(content)
             content = content[:self.model.max_len // 5]
@@ -111,6 +115,7 @@ class DiscreteCodePreparer(CodePreparer):
             data[Map.UID_COL] = self.uid_vocab.append(data[Map.UID_COL])
             data[Map.IID_COL] = self.iid_vocab.append(data[Map.IID_COL])
 
-        print(f'{self.processor.dataset_name} dataset: additional item alignment data max_sequence_len: {max_sequence_len}')
+        logger.debug(
+            f'{self.processor.dataset_name} dataset preprocessed, additional item alignment data max_sequence_len: {max_sequence_len}')
 
         return pd.DataFrame(datalist)

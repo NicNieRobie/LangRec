@@ -5,6 +5,7 @@ import os
 
 import numpy as np
 import torch
+from loguru import logger
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -22,7 +23,7 @@ class SIDEncoder(BaseEncoder):
     def __init__(self, config, device, output_dir=DEFAULT_OUTPUT_DIR, ckpt_dir=DEFAULT_CKPT_DIR):
         super().__init__(config, device, output_dir)
 
-        self.model_name = config.model
+        self.model_name = config.enc_model
 
         embedder = Embedder(self.dataset, self.model_name, self.task, config.rqvae_attrs, device)
         emb_path = embedder.run()
@@ -32,10 +33,10 @@ class SIDEncoder(BaseEncoder):
         self.num_emb_list = config.rqvae_num_emb_list
         self.sizes = f"{int(self.num_emb_list[0])}x{len(self.num_emb_list)}"
 
-        output_name = f'{self.dataset}_{self.model_name}_{self.sizes}_{self.task}_sid.json'.lower()
+        output_name = f'{self.dataset}_{self.model_name}_{self.sizes}_{self.task}_sid'.lower()
 
         self.rqvae_ckpt_path = os.path.join(ckpt_dir, output_name)
-        self.code_output_path = os.path.join(output_dir, output_name)
+        self.code_output_path = os.path.join(output_dir, f'{output_name}.json')
 
         self.rqvae = RQVAE(
             num_emb_list=list(map(int, config.rqvae_num_emb_list)),
@@ -54,6 +55,10 @@ class SIDEncoder(BaseEncoder):
         )
 
     def encode(self) -> dict:
+        if os.path.exists(self.code_output_path):
+            logger.debug("Codes already exist, skipping encoding...")
+            return json.load(open(self.code_output_path))
+
         best_collision_ckpt = os.path.join(self.rqvae_ckpt_path, 'best_collision_model.pth')
 
         if not os.path.exists(best_collision_ckpt):
@@ -65,8 +70,8 @@ class SIDEncoder(BaseEncoder):
 
             best_loss, best_collision_rate = trainer.fit(train_loader)
 
-            print("Best RQ-VAE loss:", best_loss)
-            print("Best RQ-VAE collision rate:", best_collision_rate)
+            logger.info("Best RQ-VAE loss:", best_loss)
+            logger.info("Best RQ-VAE collision rate:", best_collision_rate)
         else:
             ckpt = torch.load(best_collision_ckpt, map_location='cpu', weights_only=False)
             self.rqvae.load_state_dict(ckpt["state_dict"])
@@ -102,7 +107,7 @@ class SIDEncoder(BaseEncoder):
                                                                sort_distances_index,
                                                                level, max_num)
 
-        print("Final collision rate:", (len(all_indices_str) - len(set(all_indices_str))) / len(all_indices_str))
+        logger.info("Final collision rate:", (len(all_indices_str) - len(set(all_indices_str))) / len(all_indices_str))
 
         item_dict = dict(zip(range(len(self.processor.items)), self.processor.items[self.processor.ITEM_ID_COL]))
 

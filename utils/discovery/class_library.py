@@ -3,13 +3,17 @@ import importlib
 import os
 from typing import TypeVar, Type, List
 
+from loguru import logger
+
 from data.ctr.base_ctr_processor import BaseCTRProcessor
 from data.drec.base_drec_processor import BaseDrecProcessor
 from data.seq.base_seq_processor import BaseSeqProcessor
 from metrics.ctr.base_ctr_metric import BaseCTRMetric
+from metrics.drec.base_drec_metric import BaseDrecMetric
 from metrics.seq.base_seq_metric import BaseSeqMetric
 from model.ctr.base_model import BaseCTRModel
-from model.drec.base_model import BaseDrecModel
+from model.ctr.sbert_model import SentenceBertModel
+from model.drec.base_drec_model import BaseDrecModel
 from model.seq.base_seq_model import BaseSeqModel
 
 T = TypeVar('T')
@@ -43,7 +47,7 @@ class ClassDiscoverer:
                     ):
                         classes.append(obj)
             except ImportError as e:
-                print(f'Error importing module {module_path}: {e}')
+                logger.error(f'Error importing module {module_path}: {e}')
 
         return classes
 
@@ -130,7 +134,13 @@ class ClassLibrary:
         return ClassLibraryFactory.create_library(base_class, path, 'processor')
 
     @staticmethod
-    def models(task: str):
+    def sentence_models():
+        path = os.path.sep.join(['model', 'ctr'])
+
+        return ClassLibraryFactory.create_library(SentenceBertModel, path, 'model')
+
+    @staticmethod
+    def models(task: str = "ctr"):
         assert task in ["ctr", "seq", "drec"]
         path = os.path.sep.join(['model', task])
 
@@ -139,7 +149,7 @@ class ClassLibrary:
         elif task == "seq":
             return ClassLibraryFactory.create_library(BaseSeqModel, path, 'seq_model')
         else:
-            return ClassLibraryFactory.create_library(BaseDrecModel, path, 'model')
+            return ClassLibraryFactory.create_library(BaseDrecModel, path, 'drec_model')
 
     @staticmethod
     def baseline_models(task: str):
@@ -162,3 +172,8 @@ class ClassLibrary:
     def seq_metrics():
         path = os.path.sep.join(['metrics', 'seq'])
         return ClassLibraryFactory.create_library(BaseSeqMetric, path)
+
+    @staticmethod
+    def seq_metrics():
+        path = os.path.sep.join(['metrics', 'drec'])
+        return ClassLibraryFactory.create_library(BaseDrecMetric, path)

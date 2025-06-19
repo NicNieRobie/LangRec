@@ -4,6 +4,8 @@ import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
+import numpy as np
+from loguru import logger
 from tqdm import tqdm
 
 from data.base_processor import BaseProcessor
@@ -33,22 +35,30 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
 
     def load(self):
         try:
-            print(f'Attempting to load {self.DATASET_NAME} from cache')
+            logger.debug(f'Attempting to load {self.DATASET_NAME} from cache')
             self.items = self.loader.load_parquet('items')
             self.users = self.loader.load_parquet('users')
             self.interactions = self.loader.load_parquet('interactions')
-            print(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
+            logger.debug(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
         except Exception as e:
-            print(f'Failed to load cached files: {e}. Loading raw data for {self.DATASET_NAME}...')
+            logger.debug(f'Failed to load cached files: {e}. Loading raw data for {self.DATASET_NAME}...')
             self.items = self.loader.cast_df(self.load_items())
             self.users = self.loader.cast_df(self.load_users())
             self.interactions = self.loader.cast_df(self.load_interactions())
-            print(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
+            logger.debug(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
 
             self.loader.save_parquet('items', self.items)
             self.loader.save_parquet('users', self.users)
             self.loader.save_parquet('interactions', self.interactions)
-            print(f'{self.DATASET_NAME} cached')
+            logger.debug(f'{self.DATASET_NAME} cached')
+
+        self.interactions = self.interactions[
+            self.interactions[self.USER_ID_COL].isin(self.users[self.USER_ID_COL])
+        ]
+
+        self.interactions = self.interactions[
+            self.interactions[self.ITEM_ID_COL].isin(self.items[self.ITEM_ID_COL])
+        ]
 
         if self.CAST_TO_STRING:
             self.users[self.HISTORY_COL] = self.users[self.HISTORY_COL].apply(lambda x: [str(i) for i in x])
@@ -61,7 +71,7 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
             self.USER_ID_COL, self.ITEM_ID_COL, self.HISTORY_COL,
             self.interactions
         ).compress():
-            print(f'Compressed {self.DATASET_NAME} data')
+            logger.debug(f'Compressed {self.DATASET_NAME} data')
             return self.load()
 
         self.load_public_sets()
@@ -87,24 +97,31 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
         the index of the positive item.
         """
         df = pd.DataFrame()
-        with tqdm(total=count) as pbar:
+        with tqdm(total=count, desc="Generating split") as pbar:
             for group in iterator:
                 pos_ids = group[group[self.LABEL_COL] == 1]
+
+                if len(pos_ids) == 0:
+                    continue
+
                 neg_ids = items[~items[self.ITEM_ID_COL].isin(pos_ids)]
 
-                group_data = {}
-                for _, row in pos_ids.iterrows():
-                    group_data[self.USER_ID_COL] = row[self.USER_ID_COL]
-                    group_data[self.LABEL_COL] = row[self.ITEM_ID_COL]
-                    group_data[self.ITEM_ID_COL] = [list(neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]) + [row[self.ITEM_ID_COL]]]
+                true_label = pos_ids[self.ITEM_ID_COL].iloc[-1]
 
-                    df = pd.concat([df, pd.DataFrame.from_dict(group_data)])
+                group_data = {
+                    self.USER_ID_COL: pos_ids[self.USER_ID_COL].iloc[-1],
+                    self.LABEL_COL: true_label,
+                    self.ITEM_ID_COL: [
+                        list(
+                            neg_ids.sample(n=self.NEG_INTERACTIONS_PER_ITEM, replace=False)[self.ITEM_ID_COL]
+                        ) + [true_label]
+                    ],
+                }
 
-                    if len(df) % 100 == 0:
-                        pbar.update(100)
+                df = pd.concat([df, pd.DataFrame.from_dict(group_data)])
 
-                    if len(df) >= count:
-                        break
+                if len(df) % 100 == 0:
+                    pbar.update(100)
 
                 if len(df) >= count:
                     break
@@ -115,7 +132,7 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
         if self.try_load_cached_splits(suffix="_drec"):
             return
 
-        print(f'Generating test and finetune sets from {self.DATASET_NAME}...')
+        logger.debug(f'Generating test and finetune sets from {self.DATASET_NAME}...')
         users_order = self.load_user_order()
         interactions = self.interactions.groupby(self.USER_ID_COL)
 
@@ -125,13 +142,13 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
             self.test_set = self.split(iterator, self.items, self.NUM_TEST)
             self.test_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('test_drec', self.test_set)
-            print(f'Generated test set for DRec task with {len(self.test_set)} samples')
+            logger.debug(f'Generated test set for DRec task with {len(self.test_set)} samples')
 
         if self.NUM_FINETUNE:
             self.finetune_set = self.split(iterator, self.items, self.NUM_FINETUNE)
             self.finetune_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('finetune_drec', self.finetune_set)
-            print(f'Generated finetune set for DRec task with {len(self.finetune_set)} samples')
+            logger.debug(f'Generated finetune set for DRec task with {len(self.finetune_set)} samples')
 
         self._loaded = True
 
@@ -142,7 +159,7 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
     def load_user_order(self):
         path = os.path.join(self.store_dir, 'user_order_drec.txt')
         if os.path.exists(path):
-            return [int(line.strip()) for line in open(path)]
+            return [line.strip() for line in open(path)]
 
         users = self.interactions[self.USER_ID_COL].unique().tolist()
         random.shuffle(users)
@@ -160,19 +177,21 @@ class BaseDrecProcessor(BaseProcessor, abc.ABC):
 
         for _, row in df.iterrows():
             uid = row[self.USER_ID_COL]
-            candidates = row[self.ITEM_ID_COL]
-            label = row[self.LABEL_COL]
+            candidates = row[self.ITEM_ID_COL].astype("int64")
+            label = np.int64(row[self.LABEL_COL])
 
             user = self.users.iloc[self.user_vocab[uid]]
-            history = slicer(user[self.HISTORY_COL])
+            history = slicer(user[self.HISTORY_COL].astype("int64"))
+            # history and candidate items are converted to lists of ints. This done so that torch will not shit itself
+            # as soon as `loader.Datasets`'s __getitem__ is used.
 
             if id_only:
                 yield uid, candidates, history, label
             else:
                 history_str = [self.build_item_str(i, item_attrs, as_dict) for i in history]
-                candidate_str = [self.build_item_str(candidate, item_attrs, as_dict) for candidate in candidates]
+                candidates_str = [self.build_item_str(candidate, item_attrs, as_dict) for candidate in candidates]
                 label_str = self.build_item_str(label, item_attrs, as_dict)
-                yield uid, candidates, history_str, candidate_str, label_str
+                yield uid, candidates, history_str, candidates_str, label_str
 
     def generate(self, slicer: Union[int, Callable], item_attrs=None, source='test', id_only=False, as_dict=False, filter_func=None):
         if not self._loaded:

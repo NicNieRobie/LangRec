@@ -4,6 +4,7 @@ import random
 from typing import Optional, Union, Callable
 
 import pandas as pd
+from loguru import logger
 
 from data.base_processor import BaseProcessor
 from data.compressor import Compressor
@@ -33,22 +34,30 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
 
     def load(self):
         try:
-            print(f'Attempting to load {self.DATASET_NAME} from cache')
+            logger.debug(f'Attempting to load {self.DATASET_NAME} from cache')
             self.items = self.loader.load_parquet('items')
             self.users = self.loader.load_parquet('users')
             self.interactions = self.loader.load_parquet('interactions')
-            print(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
+            logger.debug(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
         except Exception as e:
-            print(f'Failed to load cached files: {e}. Loading raw data for {self.DATASET_NAME}...')
+            logger.debug(f'Failed to load cached files: {e}. Loading raw data for {self.DATASET_NAME}...')
             self.items = self.loader.cast_df(self.load_items())
             self.users = self.loader.cast_df(self.load_users())
             self.interactions = self.loader.cast_df(self.load_interactions())
-            print(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
+            logger.debug(f'Loaded {len(self.items)} items, {len(self.users)} users, {len(self.interactions)} interactions')
 
             self.loader.save_parquet('items', self.items)
             self.loader.save_parquet('users', self.users)
             self.loader.save_parquet('interactions', self.interactions)
-            print(f'{self.DATASET_NAME} cached')
+            logger.debug(f'{self.DATASET_NAME} cached')
+
+        self.interactions = self.interactions[
+            self.interactions[self.USER_ID_COL].isin(self.users[self.USER_ID_COL])
+        ]
+
+        self.interactions = self.interactions[
+            self.interactions[self.ITEM_ID_COL].isin(self.items[self.ITEM_ID_COL])
+        ]
 
         if self.CAST_TO_STRING:
             self.users[self.HISTORY_COL] = self.users[self.HISTORY_COL].apply(lambda x: [str(i) for i in x])
@@ -61,7 +70,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
             self.USER_ID_COL, self.ITEM_ID_COL, self.HISTORY_COL,
             self.interactions
         ).compress():
-            print(f'Compressed {self.DATASET_NAME} data')
+            logger.debug(f'Compressed {self.DATASET_NAME} data')
             return self.load()
 
         self.load_public_sets()
@@ -96,7 +105,7 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
         if self.try_load_cached_splits(suffix="_ctr"):
             return
 
-        print(f'Generating test and finetune sets from {self.DATASET_NAME}...')
+        logger.debug(f'Generating test and finetune sets from {self.DATASET_NAME}...')
         users_order = self.load_user_order()
         interactions = self.interactions.groupby(self.USER_ID_COL)
 
@@ -106,13 +115,13 @@ class BaseCTRProcessor(BaseProcessor, abc.ABC):
             self.test_set = self.split(iterator, self.NUM_TEST)
             self.test_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('test_ctr', self.test_set)
-            print(f'Generated test set with {len(self.test_set)} samples')
+            logger.debug(f'Generated test set with {len(self.test_set)} samples')
 
         if self.NUM_FINETUNE:
             self.finetune_set = self.split(iterator, self.NUM_FINETUNE)
             self.finetune_set.reset_index(drop=True, inplace=True)
             self.loader.save_parquet('finetune_ctr', self.finetune_set)
-            print(f'Generated finetune set with {len(self.finetune_set)} samples')
+            logger.debug(f'Generated finetune set with {len(self.finetune_set)} samples')
 
         self._loaded = True
 

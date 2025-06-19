@@ -19,9 +19,16 @@ SEQ_PROMPT = (
 
 DREC_SIMPLE_PROMPT = (
     "You are a recommender system. "
+    "Given a user behavior sequence and a list of candidate items, suggest an item from the list of candidates that the user is expected to be interested in. "
+)
+
+DREC_STRICT_PROMPT = (
+    "You are a recommender system. "
     "I will provide a user behavior sequence and a list of candidate items. "
     "Respond only with the item that the user is expected to be interested in. "
     "Do not include any explanations, comments, or other words — only the expected item. "
 )
 
-DREC_PROMPT_SUFFIX = "\nAnswer (the expected item): "
+DREC_PROMPT_SUFFIX = (
+    "Answer (item from the list of candidates): "
+)

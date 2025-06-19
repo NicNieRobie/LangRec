@@ -29,8 +29,6 @@ class BaseSeqModel(BaseDiscreteCodeModel):
 
             curr_idx += num
 
-        print(self.code_list)
-
         self.code_tree = None
         self.code_map = None
 
@@ -49,7 +47,7 @@ class BaseSeqModel(BaseDiscreteCodeModel):
 
         output = self.model(
             inputs_embeds=input_embeddings,
-            attention_mask=attention_mask,
+            attention_mask=attention_mask.float(),
             output_hidden_states=True
         )
 
@@ -105,14 +103,16 @@ class BaseSeqModel(BaseDiscreteCodeModel):
         return set(node.keys())
 
     def decode_prod(self, batch):
-        _, logits = self._get_logits(batch)
+        _, logits = self._get_logits(batch) # [B, BIGL, C] BIGL is initial embedding size, C is the vocabulary size
         batch_size = logits.size(0)
 
-        decode_start = batch[SeqCodeMap.SOB_COL].to(self.device)
-        decode_length = batch[SeqCodeMap.LOB_COL].to(self.device)
+        decode_start = batch[SeqCodeMap.SOB_COL].to(self.device) # [B]
+        decode_length = batch[SeqCodeMap.LOB_COL].to(self.device) # [B]
         if decode_length.max().item() != decode_length.min().item():
             raise ValueError('Decode length beam_length should be the same')
 
+        # bs_ar and dl_ar are used for array comprehension: using just `:` instead creates a new array dimension
+        # instead of applying the filter to the whole array
         decode_length = decode_length.max().item()
         bs_ar = torch.arange(batch_size).to(self.device)
         dl_ar = torch.arange(decode_length).to(self.device)
@@ -120,13 +120,14 @@ class BaseSeqModel(BaseDiscreteCodeModel):
         ground_truth_indices = decode_start.unsqueeze(-1) + dl_ar
         input_ids = batch[SeqCodeMap.IPT_COL].to(self.device)
 
-        ground_truth = input_ids[bs_ar.unsqueeze(-1), ground_truth_indices]
-        logits = logits[bs_ar.unsqueeze(-1), ground_truth_indices]
+        # Here L is the length of the item's code
+        ground_truth = input_ids[bs_ar.unsqueeze(-1), ground_truth_indices] # [B, L]
+        logits = logits[bs_ar.unsqueeze(-1), ground_truth_indices] # [B, L]
 
-        argsort = logits.argsort(dim=-1, descending=True)
-        argsort = argsort.argsort(dim=-1)
+        argsort = logits.argsort(dim=-1, descending=True) # [B, L, C]
+        argsort = argsort.argsort(dim=-1) # [B, L, C]
 
-        rank = argsort[bs_ar.unsqueeze(-1), dl_ar.unsqueeze(0), ground_truth]
+        rank = argsort[bs_ar.unsqueeze(-1), dl_ar.unsqueeze(0), ground_truth] # [B, L]
 
         return rank
 

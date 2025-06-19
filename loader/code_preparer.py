@@ -1,3 +1,4 @@
+from loguru import logger
 from tqdm import tqdm
 
 from loader.code_map import CodeMap as Map
@@ -14,11 +15,11 @@ class CodePreparer(Preparer):
         datalist = []
 
         max_sequence_len = 0
-        print(f'preprocessing on the {self.processor.dataset_name} dataset')
 
         for index, data in tqdm(
-                enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
-                total=len(self.processor.get_source_set(source=source))
+            enumerate(self.processor.generate(slicer=self.config.history_window, source=source, id_only=True)),
+            total=len(self.processor.get_source_set(source=source)),
+            desc=f"Preprocessing the {self.processor.dataset_name} dataset"
         ):
             uid, iid, history, label = data
 
@@ -51,6 +52,6 @@ class CodePreparer(Preparer):
             data[Map.UID_COL] = self.uid_vocab.append(data[Map.UID_COL])
             data[Map.IID_COL] = self.iid_vocab.append(data[Map.IID_COL])
 
-        print(f'{self.processor.dataset_name} dataset: max_sequence_len: {max_sequence_len}')
+        logger.debug(f'{self.processor.dataset_name} dataset preprocessed, max_sequence_len: {max_sequence_len}')
 
         return datalist

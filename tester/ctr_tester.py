@@ -2,16 +2,22 @@ import os.path
 
 import numpy as np
 import torch
+from tqdm import tqdm
 
-from utils import bars
-from utils.exporter import Exporter
-
+from loader.discrete_code_preparer import DiscreteCodePreparer
+from loader.map import Map
 from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
+from utils import bars
+from utils.dataloader import get_steps
+from utils.export_writer import ExportWriter
 from utils.metrics import get_metrics_aggregator
+from loguru import logger
+
+from utils.timer import Timer
 
 
-class Tester:
-    def __init__(self, config, processor, model):
+class CTRTester:
+    def __init__(self, config, processor, model, run_name):
         self.config = config
 
         self.model_name = config.model.upper()
@@ -22,7 +28,7 @@ class Tester:
         self.use_prompt = self.type == 'prompt'
         self.use_embed = self.type == 'embed'
 
-        assert config.task in ["ctr", "drec", "seq"]
+        assert config.task == "ctr"
         self.task = config.task
 
         self.subset = "test"
@@ -32,21 +38,22 @@ class Tester:
 
         self.sign = ''
 
-        self.log_dir = os.path.join('export', self.dataset)
+        self.export_dir = os.path.join('export', run_name)
 
-        if self.use_embed:
-            assert self.config.embed_func in ['last', 'pool']
-            embed_suffix = '_embed'
-            if self.config.embed_func == 'pool':
-                embed_suffix += '_pool'
-            self.log_dir = os.path.join('export', self.dataset + embed_suffix)
+        os.makedirs(self.export_dir, exist_ok=True)
 
-        os.makedirs(self.log_dir, exist_ok=True)
-
-        self.exporter = Exporter(os.path.join(self.log_dir, f'{self.model_name}{self.sign}_{self.task}.dat'))
+        self.exporter = ExportWriter(os.path.join(self.export_dir))
 
         if self.config.rerun:
             self.exporter.reset()
+
+        if self.use_encoding():
+            self.num_codes = model.num_codes
+
+        self.latency_timer = Timer(activate=False)
+
+    def use_encoding(self):
+        return self.config.code_path is not None or self.config.code_type is not None
 
     @staticmethod
     def _truncate_inputs(history, candidate, top_k_ratio=0.1):
@@ -60,6 +67,7 @@ class Tester:
         return history, candidate[:max(len(candidate) // 2, 10)]
 
     def _retry_with_truncation(self, history, candidate, input_template):
+        self.latency_timer.run('test')
         for _ in range(5):
             for i in range(len(history)):
                 _history = [f'({j + 1}) {history[i + j]}' for j in range(len(history) - i)]
@@ -74,17 +82,14 @@ class Tester:
         return None
 
     def test_prompt(self):
-        if self.config.task in ["drec", "seq"]:
-            input_template = "User behavior sequence: \n{0}\nCandidate items: {1}"
-        else:
-            input_template = "User behavior sequence: \n{0}\nCandidate item: {1}"
+        input_template = "User behavior sequence: \n{0}\nCandidate item: {1}"
 
         progress = 0
 
-        if self.exporter.exists() and not self.config.latency:
-            responses = self.exporter.read(as_float=False)
+        if self.exporter.scores_exist() and not self.config.latency:
+            responses = self.exporter.read_scores(as_float=False)
             progress = len(responses)
-            print(f'Start from {progress}')
+            logger.debug(f'Start from {progress}')
 
         source_set = self.processor.get_source_set(self.subset)
         data_gen = self.processor.generate(slicer=self.config.history_window, source=self.config.source)
@@ -93,27 +98,31 @@ class Tester:
             if idx < progress:
                 continue
 
-            uid, item_id, history, candidate, label = data # candidate is a list of candidates in case of drec
-
-            if self.task == "drec":
-                candidate = "\n".join(candidate)
+            uid, item_id, history, candidate, label = data
 
             response = self._retry_with_truncation(history, candidate, input_template)
 
             if response is None:
-                print(f'Failed to get response for {idx} ({uid}, {item_id})')
+                logger.error(f'Failed to get response for {idx} ({uid}, {item_id})')
                 exit(0)
+
+            self.latency_timer.run('test')
 
             if isinstance(response, int):
                 response = f'{response:.4f}'
             elif isinstance(response, str):
                 response = response.strip(" \n")
+                try:
+                    # Take only the first line of the answer if the model has multiline output. This is done so that the
+                    # export of the model output is not all messed up.
+                    response = response.split('\n')[0]
+                finally:
+                    pass
             else:
                 pass
             bar.set_postfix_str(f'label: {label}, response: {response}')
 
-            if not self.config.latency:
-                self.exporter.write(response)
+            self.exporter.write_scores(response)
 
     def _get_embedding(self, _id, data, is_user=True):
         embed_dict = self.exporter.load_embed('user' if is_user else 'item')
@@ -125,6 +134,7 @@ class Tester:
             return embed_dict[_id], embed_dict
 
         embed = None
+        self.latency_timer.run('test')
         if self.model.AS_DICT:
             embed = self.model.embed(history if is_user else [candidate])
         else:
@@ -152,8 +162,10 @@ class Tester:
                 history, candidate = self._truncate_inputs(history, candidate)
 
         if embed is None:
-            print(f'Failed to get {"user" if is_user else "item"} embeddings for {_id}')
+            logger.error(f'Failed to get {"user" if is_user else "item"} embeddings for {_id}')
             exit(0)
+
+        self.latency_timer.run('test')
 
         embed_dict[_id] = embed
         return embed, embed_dict
@@ -161,10 +173,10 @@ class Tester:
     def test_embed(self):
         progress = 0
 
-        if self.exporter.exists():
-            responses = self.exporter.read()
+        if self.exporter.scores_exist():
+            responses = self.exporter.read_scores()
             progress = len(responses)
-            print(f'Start from {progress}')
+            logger.debug(f'Start testing from {progress}')
 
         source_set = self.processor.get_source_set(self.subset)
         data_gen = self.processor.generate(
@@ -192,10 +204,44 @@ class Tester:
 
             bar.set_postfix_str(f'label: {label}, score: {score:.4f}')
 
-            self.exporter.write(score)
+            self.exporter.write_scores(score)
+
+    def test_encoding(self):
+        preparer = DiscreteCodePreparer(
+            processor=self.processor,
+            model=self.model,
+            conf=self.config
+        )
+        if not preparer.has_generated:
+            self.processor.load()
+
+        test_dl = preparer.load_or_generate(mode='test')
+
+        total_valid_steps = get_steps(test_dl)
+
+        self.model.model.eval()
+        with torch.no_grad():
+            score_list, label_list, group_list = [], [], []
+            for index, batch in tqdm(enumerate(test_dl), total=total_valid_steps[0], desc="Testing"):
+                self.latency_timer.run('test')
+                scores = self.model.evaluate(batch)
+                self.latency_timer.run('test')
+                labels = batch[Map.LBL_COL].tolist()
+                groups = batch[Map.UID_COL].tolist()
+
+                score_list.extend(scores)
+                label_list.extend(labels)
+                group_list.extend(groups)
+
+            aggregator = CTRMetricsAggregator.build_from_config(self.config.metrics)
+            results = aggregator(score_list, label_list, group_list)
+
+            logger.info(f'Evaluation results')
+            for metric, value in results.items():
+                logger.info(f'{metric}: {value:.4f}')
 
     def evaluate(self):
-        scores = self.exporter.read()
+        scores = self.exporter.read_scores()
 
         source_set = self.processor.get_source_set(self.config.source)
 
@@ -206,19 +252,29 @@ class Tester:
 
         results = aggregator(scores, labels, groups)
 
-        for metric, val in results.items():
-            print(f'{metric}: {val:.4f}')
+        logger.info(f'Evaluation results')
+        for metric, value in results.items():
+            logger.info(f'{metric}: {value:.4f}')
+
+        latency_st = self.latency_timer.status_dict["test"]
+        results['Avg inference time'] = latency_st.avgms()
+        results['Total steps'] = latency_st.count
 
         self.exporter.save_metrics(results)
 
     def __call__(self):
-        if self.config.latency:
-            # TODO
-            return
+        self.latency_timer.activate()
+        self.latency_timer.clear()
+
+        if self.use_encoding():
+            self.test_encoding()
 
         if self.use_prompt:
             self.test_prompt()
         else:
             self.test_embed()
+
+        st = self.latency_timer.status_dict["test"]
+        logger.debug(f'Total {st.count} steps, avg ms {st.avgms():.4f}')
 
         self.evaluate()

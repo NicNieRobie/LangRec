@@ -1,26 +1,22 @@
 import os.path
 import os.path
 import random
-import sys
+from typing import Type
 
-import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from loader.discrete_code_preparer import DiscreteCodePreparer
-from loader.map import Map
 from loader.preparer import Preparer
-from metrics.ctr.ctr_metrics_aggregator import CTRMetricsAggregator
 from model.base_model import BaseModel
-from utils.discovery.class_library import ClassLibrary
-from utils.gpu import get_device
-from utils.monitor import Monitor
+from tuner.tune_utils.monitor import Monitor
 from utils.timer import Timer
+from loguru import logger
 
 
 class Tuner:
-    PREPARER_CLASS = Preparer
+    PREPARER_CLASS: Type[Preparer] = Preparer
 
     model: BaseModel
 
@@ -39,8 +35,6 @@ class Tuner:
         self.log_dir = os.path.join('tuning', self.model_name)
         os.makedirs(self.log_dir, exist_ok=True)
 
-        print(f'python {" ".join(sys.argv)}')
-
         self.sign = f"{self.model_name}_on_{self.processor.dataset_name}_{self.config.task}"
 
         self.model_path = os.path.join(self.log_dir, f'{self.model_name}_on_{self.processor.dataset_name}.pt')
@@ -54,70 +48,28 @@ class Tuner:
             lr=self.config.lr
         )
 
-        self.metrics_aggregator = CTRMetricsAggregator.build_from_config(self.config.metrics)
+        self.metrics_aggregator = self.build_metrics_aggregator()
 
         self.monitor = Monitor(metrics_aggregator=self.metrics_aggregator, patience=self.config.patience)
         self.latency_timer = Timer(activate=False)
+
+    def build_metrics_aggregator(self):
+        raise NotImplementedError
 
     def get_model(self):
         return self.model
 
     def load_model(self):
-        models = ClassLibrary.models(self.config.task)
+        raise NotImplementedError
 
-        if self.model_name not in models:
-            raise ValueError(f'Unknown model: {self.model_name}')
-
-        model = models[self.model_name]
-
-        return model(device=get_device(self.config.gpu))
-
-    @staticmethod
-    def _get_steps(dataloader):
-        return (len(dataloader.dataset) + dataloader.batch_size - 1) // dataloader.batch_size
-
-    def list_tunable_parameters(self):
-        print('tunable parameters:')
-        for name, param in self.model.model.named_parameters():
-            if param.requires_grad:
-                print(f'{name}: {param.size()}')
+    def load_data(self):
+        raise NotImplementedError
 
     def evaluate(self, valid_dl, epoch):
-        total_valid_steps = self._get_steps(valid_dl)
+        raise NotImplementedError
 
-        self.model.model.eval()
-        with torch.no_grad():
-            metric_name, metric_values = None, []
-            print(f'(epoch {epoch}) validating: {self.processor.dataset_name}')
-            score_list, label_list, group_list = [], [], []
-            for index, batch in enumerate(tqdm(valid_dl, total=total_valid_steps)):
-                self.latency_timer.run('test')
-                scores = self.model.evaluate(batch)
-                self.latency_timer.run('test')
-                labels = batch[Map.LBL_COL].tolist()
-                groups = batch[Map.UID_COL].tolist()
-
-                score_list.extend(scores)
-                label_list.extend(labels)
-                group_list.extend(groups)
-
-            results = self.metrics_aggregator(score_list, label_list, group_list)
-
-            for k in results:
-                metric_name = k
-                metric_values.append(results[k])
-            print(
-                f'(epoch {epoch}) validation on {self.processor.dataset_name} dataset with {metric_name}: {metric_values[-1]:.4f}')
-        self.model.model.train()
-
-        metric_value = np.mean(metric_values).item()
-        print(f'(epoch {epoch}) validation on all datasets with {metric_name}: {metric_value:.4f}')
-
-        action = self.monitor.push(metric_name, metric_value)
-        if action is self.monitor.BEST:
-            self.model.save(os.path.join(self.log_dir, f'{self.sign}.pt'))
-            print(f"Saving best model to {os.path.join(self.log_dir, f'{self.sign}.pt')}")
-        return action
+    def use_encoding(self):
+        return self.config.code_path is not None or self.config.code_type is not None
 
     def get_eval_interval(self, total_train_steps):
         if self.config.eval_interval == 0:
@@ -127,35 +79,6 @@ class Tuner:
             return total_train_steps // -self.config.eval_interval
 
         return self.config.eval_interval
-
-    def load_data(self):
-
-        preparer = self.PREPARER_CLASS(
-            processor=self.processor,
-            model=self.model,
-            config=self.config
-        )
-        train_df = preparer.load_or_generate(mode='train')
-
-        preparer = self.PREPARER_CLASS(
-            processor=self.processor,
-            model=self.model,
-            config=self.config
-        )
-        valid_dl = preparer.load_or_generate(mode='valid')
-
-        return train_df, valid_dl
-
-    def load_test_data(self):
-        preparer = self.PREPARER_CLASS(
-            processor=self.processor,
-            model=self.model,
-            config=self.config
-        )
-        if not preparer.has_generated:
-            self.processor.load()
-        test_dl = preparer.load_or_generate(mode='test')
-        return test_dl
 
     def alignment(self):
         if not issubclass(self.PREPARER_CLASS, DiscreteCodePreparer):
@@ -183,7 +106,8 @@ class Tuner:
         self.model.model.train()
         accumulate_step = 0
         self.optimizer.zero_grad()
-        for index, batch in tqdm(enumerate(train_dl), total=total_train_steps):
+
+        for index, batch in tqdm(enumerate(train_dl), total=total_train_steps, desc="Aligning"):
             if random.random() * self.config.align_step >= 1:
                 continue
 
@@ -196,10 +120,6 @@ class Tuner:
                 self.optimizer.zero_grad()
                 accumulate_step = 0
 
-    @property
-    def test_command(self):
-        return f'python main.py --model {self.model} --dataset <data_name>'
-
     def finetune(self):
         train_df, valid_dl = self.load_data()
 
@@ -208,8 +128,6 @@ class Tuner:
         train_dl = DataLoader(train_ds, batch_size=self.config.batch_size, shuffle=False)
 
         total_train_steps = (len(train_ds) + self.config.batch_size - 1) // self.config.batch_size
-
-        self.list_tunable_parameters()
 
         eval_interval = self.get_eval_interval(total_train_steps)
 
@@ -220,7 +138,7 @@ class Tuner:
 
             accumulate_step = 0
             self.optimizer.zero_grad()
-            for index, batch in tqdm(enumerate(train_dl), total=total_train_steps):
+            for index, batch in tqdm(enumerate(train_dl), total=total_train_steps, desc="Tuning"):
                 loss = self.model.finetune(batch)
                 loss.backward()
 
@@ -233,8 +151,7 @@ class Tuner:
                 if (index + 1) % eval_interval == 0:
                     action = self.evaluate(valid_dl, epoch)
                     if action is self.monitor.STOP:
-                        print('early stopping')
-                        print(f'please evaluate the model by: {self.test_command}')
+                        logger.info('Early stopping')
                         return
 
             epoch += 1
@@ -249,7 +166,7 @@ class Tuner:
         except KeyboardInterrupt:
             pass
         st = self.latency_timer.status_dict['test']
-        print(f'Total {st.count} steps, avg ms {st.avgms():.4f}')
+        logger.info(f'Total {st.count} steps, avg ms {st.avgms():.4f}')
 
     def __call__(self):
         if self.config.latency:

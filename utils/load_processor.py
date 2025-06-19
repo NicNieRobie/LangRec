@@ -2,7 +2,7 @@ from utils.discovery.class_library import ClassLibrary
 
 
 def load_processor(dataset, task, data_path=None):
-    assert task in ['ctr', 'seq'], f'Task {task} is not supported'
+    assert task in ['ctr', 'seq', 'drec'], f'Task {task} is not supported'
 
     processors = ClassLibrary.processors(task)
 

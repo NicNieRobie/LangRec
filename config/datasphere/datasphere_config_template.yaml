@@ -1,4 +1,4 @@
-name: langrec-{uuid}
+name: {name}
 desc: Script to run LangRec benchmark
 cmd: python main.py {args}
 env:
@@ -10,8 +10,13 @@ inputs:
   - config/
   - data_store/
   - encoding/
-  - ckpt/
   - model_files/
 outputs:
-  - results
-cloud-instance-type: g1.1
+  - export/
+working-storage:
+  type: SSD
+  size: 200Gb
+cloud-instance-type:
+  - g2.1
+  - g1.1
+  - c1.4

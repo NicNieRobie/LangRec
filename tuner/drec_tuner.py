@@ -6,23 +6,31 @@ import torch
 from tqdm import tqdm
 
 from loader.map import Map
-from loader.seq_preparer import SeqPreparer
-from metrics.seq.seq_metrics_aggregator import SeqMetricsAggregator
-from model.seq.base_seq_model import BaseSeqModel
+from loader.drec_preparer import DrecPreparer
+from metrics.drec.drec_metrics_aggregator import DrecMetricsAggregator
+from model.drec.base_drec_model import BaseDrecModel
 from utils.code import get_code_indices
+from utils.dataloader import get_steps
 from utils.discovery.class_library import ClassLibrary
 from utils.gpu import get_device
-from utils.tuner import Tuner
+from tuner.tuner import Tuner
 
 
-class SeqTuner(Tuner):
-    PREPARER_CLASS = SeqPreparer
+class DrecTuner(Tuner):
+    PREPARER_CLASS = DrecPreparer
 
-    model: BaseSeqModel
+    model: BaseDrecModel
     num_codes: int
 
+    def build_metrics_aggregator(self):
+        return DrecMetricsAggregator.build_from_config(
+            [self.config.valid_metric],
+            prod_mode=self.config.search_mode == 'prod'
+        )
+
     def load_model(self):
-        _, code_list, self.num_codes = get_code_indices(self.config.code_path)
+        device = get_device(self.config.gpu)
+        _, code_list, self.num_codes = get_code_indices(self.config, device)
 
         models = ClassLibrary.models(self.config.task)
 
@@ -31,9 +39,9 @@ class SeqTuner(Tuner):
 
         model = models[self.model_name]
 
-        assert issubclass(model, BaseSeqModel), f'{model} is not a subclass of BaseSeqModel'
+        assert issubclass(model, BaseDrecModel), f'{model} is not a subclass of BaseDrecModel'
 
-        return model(device=get_device(self.config.gpu), num_codes=self.num_codes, code_list=code_list)
+        return model(device=device, num_codes=self.num_codes, code_list=code_list, task=self.config.task)
 
     def load_data(self):
         preparer = self.PREPARER_CLASS(
@@ -50,7 +58,7 @@ class SeqTuner(Tuner):
         )
         valid_dl = preparer.load_or_generate(mode='valid')
 
-        cast(BaseSeqModel, self.model).set_code_meta(preparer.code_tree, preparer.code_map)
+        cast(BaseDrecModel, self.model).set_code_meta(preparer.code_tree, preparer.code_map)
 
         return train_df, valid_dl
 
@@ -62,7 +70,7 @@ class SeqTuner(Tuner):
 
         group_list, ranks_list = [], []
         item_index = 0
-        for index, batch in tqdm(enumerate(dataloader), total=steps):
+        for index, batch in tqdm(enumerate(dataloader), total=steps, desc="Validating"):
             if random.random() * step > 1:
                 continue
 
@@ -87,17 +95,12 @@ class SeqTuner(Tuner):
                 group_list.extend(groups)
                 ranks_list.extend(rank)
 
-        aggregator = SeqMetricsAggregator.build_from_config(
-            self.config.metrics,
-            num_items=self.num_codes,
-            prod_mode=search_mode == 'prod'
-        )
-        results = aggregator(ranks_list, group_list)
+        results = self.metrics_aggregator(ranks_list, group_list)
 
         return results
 
     def evaluate(self, valid_dl, epoch):
-        total_valid_steps = self._get_steps(valid_dl)
+        total_valid_steps = get_steps(valid_dl)
 
         self.model.model.eval()
 
@@ -119,4 +122,3 @@ class SeqTuner(Tuner):
             print(f'Saving best model to {self.log_dir}/{self.sign}.pt')
 
         return action
-

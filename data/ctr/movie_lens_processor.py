@@ -18,8 +18,8 @@ class MovieLensProcessor(TimedInteractionProcessor):
 
     POS_SAMPLE_COUNT = 2
 
-    NUM_TEST = 5_000
-    NUM_FINETUNE = 40_000
+    NUM_TEST = 10_000
+    NUM_FINETUNE = 80_000
 
     CAST_TO_STRING = False
 
