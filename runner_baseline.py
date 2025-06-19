@@ -236,7 +236,7 @@ class BaselineRunner:
 
         os.makedirs(export_dir, exist_ok=True)
 
-        print(export_dir)
+        print(f'Output dir: {export_dir}')
 
         with OfflineEmissionsTracker(
             country_iso_code="RUS",
