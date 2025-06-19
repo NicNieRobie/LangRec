@@ -43,10 +43,16 @@ def build_args_list(model_cfg, mode):
         entries = model_entries if isinstance(model_entries, list) else [model_entries]
 
         for entry in entries:
+            if mode == 'testtune' and not entry.get('finetune'):
+                continue
+
             task = entry.get('task')
             model_type = entry.get('type')
             kind = entry.get('kind')
             requires_cloud = kind == 'large' or mode != 'test'
+
+            if model_type == 'encoding' and mode != 'testtune':
+                continue
 
             metrics_str = ','.join(METRICS[task])
             valid_metric = VALID_METRICS.get(task) if mode == 'testtune' else None
