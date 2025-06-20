@@ -70,8 +70,8 @@ class SIDEncoder(BaseEncoder):
 
             best_loss, best_collision_rate = trainer.fit(train_loader)
 
-            logger.info("Best RQ-VAE loss:", best_loss)
-            logger.info("Best RQ-VAE collision rate:", best_collision_rate)
+            logger.info(f"Best RQ-VAE loss: {best_loss}")
+            logger.info(f"Best RQ-VAE collision rate: {best_collision_rate}")
         else:
             ckpt = torch.load(best_collision_ckpt, map_location='cpu', weights_only=False)
             self.rqvae.load_state_dict(ckpt["state_dict"])
@@ -107,7 +107,7 @@ class SIDEncoder(BaseEncoder):
                                                                sort_distances_index,
                                                                level, max_num)
 
-        logger.info("Final collision rate:", (len(all_indices_str) - len(set(all_indices_str))) / len(all_indices_str))
+        logger.info(f"Final collision rate: {(len(all_indices_str) - len(set(all_indices_str))) / len(all_indices_str)}")
 
         item_dict = dict(zip(range(len(self.processor.items)), self.processor.items[self.processor.ITEM_ID_COL]))
 
