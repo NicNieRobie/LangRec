@@ -124,6 +124,8 @@ class CTRTester:
 
             self.exporter.write_scores(response)
 
+        self.evaluate()
+
     def _get_embedding(self, _id, data, is_user=True):
         embed_dict = self.exporter.load_embed('user' if is_user else 'item')
         history, candidate = data['history'], data['candidate']
@@ -206,11 +208,13 @@ class CTRTester:
 
             self.exporter.write_scores(score)
 
+        self.evaluate()
+
     def test_encoding(self):
         preparer = DiscreteCodePreparer(
             processor=self.processor,
             model=self.model,
-            conf=self.config
+            config=self.config
         )
         if not preparer.has_generated:
             self.processor.load()
@@ -222,7 +226,7 @@ class CTRTester:
         self.model.model.eval()
         with torch.no_grad():
             score_list, label_list, group_list = [], [], []
-            for index, batch in tqdm(enumerate(test_dl), total=total_valid_steps[0], desc="Testing"):
+            for index, batch in tqdm(enumerate(test_dl), total=total_valid_steps, desc="Testing"):
                 self.latency_timer.run('test')
                 scores = self.model.evaluate(batch)
                 self.latency_timer.run('test')
@@ -276,5 +280,3 @@ class CTRTester:
 
         st = self.latency_timer.status_dict["test"]
         logger.debug(f'Total {st.count} steps, avg ms {st.avgms():.4f}')
-
-        self.evaluate()

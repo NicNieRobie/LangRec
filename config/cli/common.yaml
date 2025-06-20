@@ -38,7 +38,7 @@ arguments:
     required: false
     type: list
     list_style: comma
-    default: "NDCG@10,MRR,Recall@10,AUC,GAUC"
+    default: "NDCG@10,MRR,Recall@10,AUC"
   history_window:
     help: The length of the user behavior history window. For a positive value N, the first N items are taken from history. For a negative value N, the last N items are taken.
     required: false
