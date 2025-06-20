@@ -23,14 +23,14 @@ class CodePreparer(Preparer):
         ):
             uid, iid, history, label = data
 
-            current_item = items[iid][:]
+            current_item = items[str(iid)][:]
 
             input_ids = prefix + user
             vocab_ids = [TV.LLM] * len(input_ids)
 
             for i in range(len(history)):
-                input_ids += numbers[i + 1] + items[history[i]] + line
-                vocab_ids += [TV.LLM] * len(numbers[i + 1]) + [TV.COD] * len(items[history[i]]) + [TV.LLM] * len(line)
+                input_ids += numbers[i + 1] + items[str(history[i])] + line
+                vocab_ids += [TV.LLM] * len(numbers[i + 1]) + [TV.COD] * len(items[str(history[i])]) + [TV.LLM] * len(line)
 
             input_ids += item + current_item + suffix
             vocab_ids += [TV.LLM] * len(item) + [TV.COD] * len(current_item) + [TV.LLM] * len(suffix)
